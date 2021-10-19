@@ -3,56 +3,56 @@ space_canvas = buildCanvas("space_canvas");
 space.append(space_canvas);
 renderer.render(space_canvas,1);
 const wH = space_canvas.width;
-renderer.backgroundImage(re.getImg("space7"),6,true);
+const vH = space_canvas.height;
+renderer.backgroundImage(re.getImg("space8"),6,true);
 const waves = new audio(re.getAud("hum"),1,1);
-const shoot = new audio(re.getAud("spacer",1,0.1));
-// the player 
-const jetPainter = new spriteSheetPainter(re.getImg("jet2"),1,1,1);
-const jetBehavior = function (jet){
-    
+const shoot = new audio(re.getAud("fire",1,0.1));
+let lifeCounter = 500;
+let eArray = [];
+
+const jetBehavior = function (jet){ 
     jetPainter.animateAllFrames = false;
-    jetPainter.delay = 8;
-    // moving the player
+    jetPainter.delay = 1;
     if (down === true) {jet.top += 20}
     down = false;
-
     if (right === true) {jet.left += 20}
     right = false;
-
     if (left === true) {jet.left -= 20}
     left = false;
     if (up === true) {jet.top -= 20}
     up = false;
-
     if (fire === true ) {
-        makeBullet(re.getImg("bullet1"), 1,jet,60, true, 10)
+        makeBullet(re.getImg("bullet4"), 1,jet,20, true, 0);
         // shoot.play();
-        // waves.play();
     }
     fire = false;
-    if (eArray.length <= 1) {
-        // console.log(eArray);
-        makeEnemies(6,2,6)
-    }
-    // if (jet.isHit === true) {
-        // jetPainter.changeSheet(re.getImg("explosion"),8,6,1)
+
+    if (jet.isHit === true) {
+        lifeCounter--;
+        if (lifeCounter === 0) {
+        jetPainter.changeSheet(re.getImg("explosion3"),8,1,1);
+        jetPainter.animateAllFrames = true;
     if (jetPainter.isLastImage) {
         jet.delete = true;
-    }
-// }
+        u(endGame).scaleOut();
+        u(endGame).style({transform: "translate(-50%, -50%)"})
+        renderer.toggleRendering()
+    }   
+}
+jet.isHit = false;
+}
+ 
+// eArray = physics.detectCollision(jet,[...eArray], 10, true);
+ if (eArray.length < 2 )  {
+    eArray = [...eArray, ...makeEnemies(6, jet.left, jet.top,jet.left + jet.width,jet.top + jet.height)];
+}
 };
-
-
-
+// the player 
+const jetPainter = new spriteSheetPainter(re.getImg("jet3"),1,1,1);
 const jet = new entity("jet", jetPainter, jetBehavior);
+eArray.push(jet);
 u(jet).config({top: Math.round((space_canvas.height - jet.height)), left: Math.round((space_canvas.width - (jet.width * 0.5)) * 0.5) , width: (0.06 * wH), height: 150});
-renderer.toggleRendering()
-
-u("#play").on("click", ()=>{
-    u(opener).hide()
-    renderer.toggleRendering()
-});
-
 renderer.assemble(jet);
 re.mount(space);
 re.start();
+renderer.toggleRendering();

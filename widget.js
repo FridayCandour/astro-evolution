@@ -1,6 +1,9 @@
+let i = 0;
 const opener = build("div", {id: "opener"})
-const pop = build("button", {id: "rules", className: "btn", innerText: "Rules"});
-const scores = build("button", {id: "scores", className: "btn", innerText: "0:00"});
+const pop = build("button", {id: "rules", className: "btn", innerText: "Menu"});
+const scores = build("button", {id: "scores", className: "btn", innerText: "comets 0", start: ()=>{
+    scores.innerText = `comets ${i++}`;
+}});
 const pause = build("button", {id: "pause", className: "btn", innerText: "Pause", onclick: ()=>{ 
     if (pause.innerText === "play") {
         pause.innerText = "pause"
@@ -10,8 +13,18 @@ const pause = build("button", {id: "pause", className: "btn", innerText: "Pause"
 }});
 const template = build("div", {id: "astroID"}, [pop, pause, scores]);
 buildTo([template, opener], "body");
-const rules = u(opener).appendTo("button", {id: "rule"}, 7)
-const play = u(opener).appendTo("button", {id: "play", innerText: "play"}, 1)
+const rules = u(opener).appendTo("button", {id: "rule"}, 7);
+const play = u(opener).appendTo("button", {id: "play", innerText: "play"}, 1);
+const endGame = u(document.body).appendTo("div", {id: "end"});
+console.log(endGame);
+css("#end",
+{
+    transform: "translate(-50%, -50%)",
+    top: "50%",
+    left: "50%",
+    "transform-origin": "center"
+    // color: "aqua"
+});
 css("#rule",
 {
     "margin-top": "9px",
@@ -46,7 +59,7 @@ display: "flex",
 "align-items": "center",
 "justify-content": "space-around",
 "margin-right": "12px",
-"border-radius": "30%"
+"border-radius": "10%"
 });
 
 u(template).style({
@@ -63,7 +76,7 @@ u(template).style({
 u(opener).style({
     width: "100vw",
     height: "100vh",
-    backgroundImage: "url("+"trash/space11.png"+")",
+    backgroundImage: "url("+"space11.png"+")",
     backgroundRepeat: "no-repeat",
     backgroundPosition: "center",
     backgroundSize: "cover",
@@ -103,4 +116,34 @@ u(play).style({
 })
 u(scores).style({
 
+})
+
+
+
+u("#play").on("click", ()=>{
+    u(opener).scaleIn()
+    renderer.toggleRendering()
+    waves.play();
+    u(endGame).scaleIn()
+});
+u(pop).on("click", ()=>{
+    u(opener).scaleOut()
+    // u(endGame).scaleIn()
+    renderer.toggleRendering()
+    waves.pause();
+});
+u("#pause").on("click", ()=>{
+    renderer.toggleRendering()
+});
+u(endGame).style({
+    width: "80%",
+    height: "80%",
+    backgroundColor: "#18163D",
+    position: "absolute",
+    margin: "auto",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  border: "3px #EDFEFD solid",
+  boxShadow: "0px 0px 9px #EDFEFD"
 })

@@ -32,7 +32,8 @@ re.loadImage([
     ["images/spa4.png","space4"],
     ["images/spa5.png","space5"],
     ["images/spa6.png","space6"],
-    ["images/spa7.png","space7"]
+    ["images/spa7.png","space7"],
+    ["images/spa8.png","space8"]
     ]);
 
 

@@ -377,7 +377,7 @@ u(object).config({
 
 */
 
-    appendTo(type, attribute, number = 1) {
+    appendTo(type, attribute = {}, number = 1) {
       // for adding new elements more powerfully
       if (typeof attribute === "undefined" || typeof type === "undefined") {
         throw new Error("type or attribute not given | not enough parameters to work with");
@@ -417,26 +417,6 @@ u(object).config({
       }
 
       return returned;
-
-      //  const createdElement = document.createElement(type);
-      //  let addedAtrr = "";
-      //  for (const [k, v] of Object.entries(attribute)) {
-      //  createdElement[k] = v;
-      // addedAtrr += ' '+k+'="'+v+'"'
-      //  }
-      // if(!all){
-      // e.append(createdElement)
-      // for(let i = 0; i < number - 1; i++){
-      // createdElement.insertAdjacentHTML("afterend","<"+type+" "+addedAtrr+"></"+type+">")
-      // }
-      //   }else{
-      //   e.forEach(element =>{
-      //   element.append(createdElement)
-      //   for(let i = 0; i < number; i++){
-      //   createdElement.insertAdjacentHTML("afterend","<"+type+" "+addedAtrr+"></"+type+">")
-      //   }})
-      //   }
-      //   return createdElement;
     },
     /*
  *** HOW TO USE ***
@@ -448,24 +428,33 @@ u("#container").appendTo("div"{
 
 */
 
-    // advance event listener
-    on(type, callback) {
-      function evft(e) {
-        //   e.stopPropagation()
-        e.preventDefault();
-        return callback(e);
-      }
+    off(type, callback) {
       if (!all) {
-        return e.addEventListener(type, evft, false);
+        return e.removeEventListener(type, callback, true);
       } else {
         return e.forEach(element => {
-          element.addEventListener(type, evft, false);
+          element.removeEventListener(type, callback, true);
+        });
+      }
+    },
+
+    on(type, callback) {
+      if (!all) {
+        return e.addEventListener(type, callback, true);
+      } else {
+        return e.forEach(element => {
+          element.addEventListener(type, callback, true);
         });
       }
     },
 
     /*
- *** HOW TO USE ***
+
+
+
+
+
+    *** HOW TO USE ***
 
 u("#container").on("click", ()=>{
     console.log("clicked!")
@@ -624,6 +613,20 @@ u("#container").toggleClass(".class")
         e.style.display = "block";
       } else {
         e.forEach(el => (el.style.display = "block"));
+      }
+    },
+    scaleOut() {
+      if (!all) {
+        e.style.transform = "scale(1)";
+      } else {
+        e.forEach(el => (el.style.transform = "scale(1)"));
+      }
+    },
+    scaleIn() {
+      if (!all) {
+        e.style.transform = "scale(0)";
+      } else {
+        e.forEach(el => (el.style.transform = "scale(0)"));
       }
     },
     /*
@@ -895,8 +898,8 @@ const keep = function (id, time) {
 const check = function (id) {
   const ind = callStack.indexOf(id);
   if (ind > -1) {
-    callStack.filter(key => !(id === key));
-    // callStack.splice(ind,1)
+    // callStack.filter(key => !(id === key));
+    callStack.splice(ind,1)
     return true;
   } else {
     return false;
@@ -1072,7 +1075,9 @@ var checkKeys = function (keys, e, delay) {
   for (var i = 0; i < keysStack.length; i++) {
       _loop_3(i);
   }
+  return keys;
 };
+
 
 
 
@@ -1122,36 +1127,37 @@ var continuesKeys = function (keys, callback, delay, object, lock) {
   if (!keys || !callback) {
       throw new Error("no keys or callbacks given");
   }
-  var temporaryKeys = [];
-  object.addEventListener("keyup", ()=>{
-      temporaryKeys = [];
-  })
   keepKeys(keys, callback);
+  var temporaryKeys = [];
+  object.addEventListener("keyup", (e)=>{
+for (let i = 0; i < temporaryKeys.length; i++) {
+  if (temporaryKeys[i] === e.key) {
+    temporaryKeys.splice(i,1);
+    --i;
+    checkKeys(temporaryKeys, e, delay);
+  }
+}
+  }, true)
+ 
   object.addEventListener("keydown", function (e) {
       if (lock) {
           e.preventDefault();
       }
-      if (temporaryKeys.indexOf(e.key) !== 0) {
+      if (temporaryKeys.indexOf(e.key) < 0) {
           temporaryKeys.push(e.key);
-      }   
+      }
       checkKeys(temporaryKeys, e, delay);
-      
-  }, false);
-
-
+  }, true);
 };
 
 
 
 function swipe(item) {
-  const caller = {};
+  let caller;
   let startX = 0,
     startY = 0;
-
   if (typeof item === "object") {
-    for (const [k, v] of Object.entries(item)) {
-      caller[k] = v;
-    }
+      caller = item;
   } else {
     throw new Error("no call given for the swipe handler");
   }
@@ -1418,7 +1424,7 @@ const re = (function () {
   // this stops the game
   const cancel = () => {
     const fram = get("#RE_gameframe");
-    fram.innerHTML = "";fire
+    fram.innerHTML = "";
     renderer.toggleRendering();
     // fram.append(vsg())
   };
@@ -1597,6 +1603,7 @@ const imgPainter = function (img, delay = 1) {
   this.image = img;
   this.delay = delay;
   this.range = 0;
+  this.rotate = false;
 };
 imgPainter.prototype = {
   // paint only no update
@@ -1630,10 +1637,6 @@ const spriteSheetPainter = function (img, horizontal = 1, vertical = 1, delay = 
   this.animateAllFrames = true;
   this.animate = true;
   this.rotate = false;
-  this.rotateToAngle = 0;
-  this.angle = function (angle) {
-    this.rotateToAngle = angle;
-  };
   this.changeSheet = function (img, horizontal = 0, vertical = 0, delay = 1) {
     this.image = img;
     this.framesWidth = Math.round(this.image.width / horizontal);
@@ -1662,17 +1665,21 @@ spriteSheetPainter.prototype = {
           if (this.frameWidthCount <= this.horizontalPictures - 2) {
             this.frameWidthCount++;
           } else {
-            this.isLastImage = true;
+            
             this.frameWidthCount = 0;
             this.frameHeightCount++;
           }
         } else {
           this.frameHeightCount = 0;
+          this.isLastImage = true;
         }
         if (this.frameHeightCount === this.verticalPictures) {
           this.frameHeightCount++;
         }
       }
+
+
+      
     }
     if (this.range > 100) {
       this.range = 1;
@@ -1680,6 +1687,11 @@ spriteSheetPainter.prototype = {
   },
   paint(entity, context) {
     context.save();
+    if (this.rotate) {
+      context.translate(entity.left, entity.top);
+      context.rotate(this.rotate * Math.PI / 180);
+      context.translate(-entity.left, -entity.top)
+    }
     context.drawImage(
       this.image,
       this.framesWidth * this.frameWidthCount,
@@ -1703,7 +1715,7 @@ const speaker = function (text, language = "", volume = 1, rate = 1, pitch = 1) 
   // build utterance and speak
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = language;
-  utterance.volume = volume * 0.3 * 3;
+  utterance.volume = volume;
   utterance.rate = rate;
   utterance.pitch = pitch;
   speechSynthesis.speak(utterance);
@@ -1715,8 +1727,7 @@ const speakerStop = () => speechSynthesis && speechSynthesis.cancel();
 const audio = function (audio, loop = 0, volumeScale = 1) {
   this.audio = audio;
   this.audio.loop = loop;
-  this.audio.volume = volumeScale * 0.3;
-  return this.audio;
+  this.audio.volume = volumeScale;
 };
 audio.prototype = {
   play() {
@@ -1773,23 +1784,30 @@ bgPainter.prototype = {
 };
 
 const physics = (function () {
-  function detectCollision(ent, name, reduce = 0) {
-    for (let j = 0; j < name.length; j++) {
-      if (
-        ent.left + reduce > name[j].left + name[j].width ||
-        ent.left + ent.width < name[j].left + reduce ||
-        ent.top > name[j].top + name[j].height ||
-        ent.top + ent.height < name[j].top + reduce
-      ) {
-        // console.log("no collisions");
-        // return false;
+  function detectCollision(ent, entityArray, reduce = 0, skipMe, freeMan) {
+    for (let j = 0; j < entityArray.length; j++) {
+      if (skipMe && entityArray[j].name === ent.name) {
         continue;
       } else {
-        // console.log(`${ent.name} has collided with name of ${name[j].name}`);
-        // return true;
-        name[j].isHit = true;
+        if (
+          (ent.left - reduce) > (entityArray[j].left + entityArray[j].width) ||
+          (ent.left + ent.width) < (entityArray[j].left - reduce) ||
+          ent.top + reduce > (entityArray[j].top + entityArray[j].height) ||
+          (ent.top + ent.height) < (entityArray[j].top - reduce)
+        ) {
+          continue;
+        } else {
+          entityArray[j].isHit = true;
+          ent.isHit = true;
+          if (entityArray[j].name !== freeMan) {
+            entityArray.splice(j,1);
+            --j; 
+          }
+          // console.log(entityArray[j].name,j);
+        }
       }
     }
+    return entityArray;
   }
 
   return {
@@ -1825,6 +1843,7 @@ const renderer = (function () {
       b.paint(canvas);
       b.update();
     });
+    return true;
   }
 
   function _assemble(...players) {
@@ -1845,22 +1864,23 @@ const renderer = (function () {
   function toggleRendering() {
     if (pause) {
       window.requestAnimationFrame(animate);
-      return (pause = false);
+      pause = false;
     } else {
       window.cancelAnimationFrame(id);
-      return (pause = true);
+      pause = true;
     }
   }
 
   function animate(dt) {
-    id = window.requestAnimationFrame(animate);
+      id = window.requestAnimationFrame(animate);      
     deltaTime = dt - lastdt;
     lastdt = dt;
     nextdt += Math.round(deltaTime);
     if (nextdt > fps) {
       try {
-        context.clearRect(0, 0, canvas.width, canvas.height);
-        animatebg(canvas);
+        if (!animatebg(canvas)) {
+          context.clearRect(0, 0, canvas.width, canvas.height);          
+        };
         entitysArray.forEach((ent, i) => {
           if (ent.delete) {
             entitysArray.splice(i, 1);
@@ -1870,11 +1890,12 @@ const renderer = (function () {
           if (ent.border) {
             ent.observeBorder(canvas.width, canvas.height);
           }
-          //   console.log(entitysArray);
           ent.update(context, dt);
           ent.run(context, dt);
           ent.paint(context, dt);
         });
+        // console.log(entitysArray);
+
       } catch (error) {
         throw new Error(`RE: the canvas cannot be animated due to some errors > ${error}`);
       }
@@ -1887,7 +1908,7 @@ const renderer = (function () {
       throw new Error("RE: game needs to be rendered EXP: renderer.render(canvas)");
     }
     canvas = canv;
-    context = canvas.getContext("2d");
+    context = canv.getContext("2d");
     fps = fpso;
     animate(0);
   }
@@ -1943,7 +1964,7 @@ const uiedbook = {
   physics,
   route
 };
-// 37 apis contexts
+// 38 apis contexts
 
 if (typeof module !== "undefined") {
   module["exports"] = uiedbook;
