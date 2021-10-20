@@ -26,20 +26,21 @@ const jetBehavior = function (jet){
 
     if (fire === true ) {
         makeBullet(re.getImg("bullet1"), 1,jet,60, true, 10)
-        // shoot.play();
-        // waves.play();
+        shoot.play();
+        waves.play();
     }
     fire = false;
     if (eArray.length <= 1) {
-        // console.log(eArray);
         makeEnemies(6,2,6)
     }
     // if (jet.isHit === true) {
+
         // jetPainter.changeSheet(re.getImg("explosion"),8,6,1)
-    if (jetPainter.isLastImage) {
-        jet.delete = true;
-    }
-// }
+    // if (jetPainter.isLastImage) {
+        // jet.delete = true;
+
+    // }
+}
 };
 
 
