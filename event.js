@@ -5,7 +5,9 @@ const upcb = ()=>{up = true},
       downcb = ()=>{down = true},
      rightcb = ()=>{right = true},
      firecb = ()=>{fire = true},
-     leftcb = ()=>{left = true};
+     leftcb = ()=>{left = true
+     // console.log("left")
+};
 
 continuesKeys(["ArrowLeft"], leftcb )
 continuesKeys(["ArrowRight"], rightcb)

@@ -1,22 +1,74 @@
+
+let maxBullets = 50;
 // creating bullets
-function makeBullet(img, number,ent, speed = 60, win, latency) {
-  eArray.push(ent)
-    for (let i = 0; i < number; i++) {
-        let  bulletPainter = new spriteSheetPainter(img,1,1,1);
-        let bulletBehaviour = function (bullet) {
-          physics.detectCollision(bullet,[...eArray,jet], latency);
+function makeBullet(img, number,ent, speed = 60, win, latency, angle, sr) {
+  let bp,
+  go = 0;
+  if (win) {
+    bp = ent.top - 25;
+  }else{
+    bp = ent.top + 60;
+  }
+  for (let i = 0; i < number; i++) {
+      maxBullets--;
+        const bulletPainter = new spriteSheetPainter(img,1,1,1);
+        const bulletBehaviour = function (bullet) {
+          bulletPainter.animateAllFrames = false;
+          bulletPainter.rotate = angle;
+          eArray  = physics.detectCollision(bullet,[...eArray], latency, false, "jet");
           if (win) {
             bullet.top -=  speed;
-          }else{
-            bullet.top +=  speed;
           }
-        
+
+          if (!win && !sr) {
+            bullet.top +=  speed;
+             bullet.left += 4;
+             go = Math.round((ent.left + (ent.width * 0.85)));
+          }else{
+            if (!win && sr) {
+              bullet.top +=  speed;
+              bullet.left -= 4; 
+              go = Math.round((ent.left + (ent.width * 0.85)))
+            }
+          }       
         if (bullet.top < 0 || bullet.top > space_canvas.height) {
           bullet.delete = true;
         }
+        if (bullet.isHit === true) {
+          bulletPainter.animateAllFrames = true;
+          u(bullet).config({width: 28, height: 28});
+          bulletPainter.changeSheet(game.getImg("explosion3"),8,1,1)
+      if (bulletPainter.isLastImage) {
+        bullet.delete = true;
+      }}
         }
-        let bullet = new entity("bullet", bulletPainter, bulletBehaviour);
-        u(bullet).config({ top: ent.top + 76, left: Math.round((ent.left + (ent.width * 0.45))), width: 12, height: 24, border: false});
+        if (win) {
+          go = Math.round((ent.left + (ent.width * 0.45)));
+        }
+        if (!win && !sr) {
+           go = Math.round((ent.left + (ent.width * 0.85)));
+        }else{
+          if (!win && sr) {
+            go = Math.round((ent.left + (ent.width * 0.20)));
+            bp = ent.top + 60;
+          }
+        }
+        if (maxEnemies = 0) {
+           maxEnemies = 50;
+         }
+      if (maxBullets > 1) {
+        const bullet = new entity("bullet", bulletPainter, bulletBehaviour);
+        u(bullet).config({ top: bp, left: go, width: 12, height: 22, border: false});
         renderer.assemble(bullet);
+        return bullet;
+      } else {
+
+        const bullet = renderer.getFreeEntity("bullet");
+        // bullet.behaviors = bulletBehaviour;
+        // console.log(bullet.behaviors);
+        u(bullet).config({ top: bp, left: go, width: 12, height: 22, border: false});
+        renderer.assemble(bullet);
+        return bullet;
+      }
     }
 }

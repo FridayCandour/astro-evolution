@@ -377,7 +377,7 @@ u(object).config({
 
 */
 
-    appendTo(type, attribute, number = 1) {
+    appendTo(type, attribute = {}, number = 1) {
       // for adding new elements more powerfully
       if (typeof attribute === "undefined" || typeof type === "undefined") {
         throw new Error("type or attribute not given | not enough parameters to work with");
@@ -417,26 +417,6 @@ u(object).config({
       }
 
       return returned;
-
-      //  const createdElement = document.createElement(type);
-      //  let addedAtrr = "";
-      //  for (const [k, v] of Object.entries(attribute)) {
-      //  createdElement[k] = v;
-      // addedAtrr += ' '+k+'="'+v+'"'
-      //  }
-      // if(!all){
-      // e.append(createdElement)
-      // for(let i = 0; i < number - 1; i++){
-      // createdElement.insertAdjacentHTML("afterend","<"+type+" "+addedAtrr+"></"+type+">")
-      // }
-      //   }else{
-      //   e.forEach(element =>{
-      //   element.append(createdElement)
-      //   for(let i = 0; i < number; i++){
-      //   createdElement.insertAdjacentHTML("afterend","<"+type+" "+addedAtrr+"></"+type+">")
-      //   }})
-      //   }
-      //   return createdElement;
     },
     /*
  *** HOW TO USE ***
@@ -448,24 +428,33 @@ u("#container").appendTo("div"{
 
 */
 
-    // advance event listener
-    on(type, callback) {
-      function evft(e) {
-        //   e.stopPropagation()
-        e.preventDefault();
-        return callback(e);
-      }
+    off(type, callback) {
       if (!all) {
-        return e.addEventListener(type, evft, false);
+        return e.removeEventListener(type, callback, true);
       } else {
         return e.forEach(element => {
-          element.addEventListener(type, evft, false);
+          element.removeEventListener(type, callback, true);
+        });
+      }
+    },
+
+    on(type, callback) {
+      if (!all) {
+        return e.addEventListener(type, callback, true);
+      } else {
+        return e.forEach(element => {
+          element.addEventListener(type, callback, true);
         });
       }
     },
 
     /*
- *** HOW TO USE ***
+
+
+
+
+
+    *** HOW TO USE ***
 
 u("#container").on("click", ()=>{
     console.log("clicked!")
@@ -624,6 +613,20 @@ u("#container").toggleClass(".class")
         e.style.display = "block";
       } else {
         e.forEach(el => (el.style.display = "block"));
+      }
+    },
+    scaleOut() {
+      if (!all) {
+        e.style.transform = "scale(1)";
+      } else {
+        e.forEach(el => (el.style.transform = "scale(1)"));
+      }
+    },
+    scaleIn() {
+      if (!all) {
+        e.style.transform = "scale(0)";
+      } else {
+        e.forEach(el => (el.style.transform = "scale(0)"));
       }
     },
     /*
@@ -895,8 +898,8 @@ const keep = function (id, time) {
 const check = function (id) {
   const ind = callStack.indexOf(id);
   if (ind > -1) {
-    callStack.filter(key => !(id === key));
-    // callStack.splice(ind,1)
+    // callStack.filter(key => !(id === key));
+    callStack.splice(ind,1)
     return true;
   } else {
     return false;
@@ -1072,7 +1075,9 @@ var checkKeys = function (keys, e, delay) {
   for (var i = 0; i < keysStack.length; i++) {
       _loop_3(i);
   }
+  return keys;
 };
+
 
 
 
@@ -1122,36 +1127,37 @@ var continuesKeys = function (keys, callback, delay, object, lock) {
   if (!keys || !callback) {
       throw new Error("no keys or callbacks given");
   }
-  var temporaryKeys = [];
-  object.addEventListener("keyup", ()=>{
-      temporaryKeys = [];
-  })
   keepKeys(keys, callback);
+  var temporaryKeys = [];
+  object.addEventListener("keyup", (e)=>{
+for (let i = 0; i < temporaryKeys.length; i++) {
+  if (temporaryKeys[i] === e.key) {
+    temporaryKeys.splice(i,1);
+    --i;
+    checkKeys(temporaryKeys, e, delay);
+  }
+}
+  }, true)
+ 
   object.addEventListener("keydown", function (e) {
       if (lock) {
           e.preventDefault();
       }
-      if (temporaryKeys.indexOf(e.key) !== 0) {
+      if (temporaryKeys.indexOf(e.key) < 0) {
           temporaryKeys.push(e.key);
-      }   
+      }
       checkKeys(temporaryKeys, e, delay);
-      
-  }, false);
-
-
+  }, true);
 };
 
 
 
 function swipe(item) {
-  const caller = {};
+  let caller;
   let startX = 0,
     startY = 0;
-
   if (typeof item === "object") {
-    for (const [k, v] of Object.entries(item)) {
-      caller[k] = v;
-    }
+      caller = item;
   } else {
     throw new Error("no call given for the swipe handler");
   }
@@ -1313,6 +1319,7 @@ problem try and see the magic */
   canv.style.backgroundColor = "black";
   canv.style.overflow = "hidden";
   context.setTransform(ratio, 0, 0, ratio, 0, 0);
+  canv.imageSmoothingQuality = "high";
   return canv;
 };
 
@@ -1338,7 +1345,7 @@ parent to append directly */
 };
 
 /*this is the RE game time line algorimth*/
-const re = (function () {
+const game = (function () {
   /*Re is an interface
  where game views (view) are
  sequenced on.*/
@@ -1364,7 +1371,7 @@ const re = (function () {
   // and the callback can be used to run a function
   // perculiar to this effect.
   function mount(template, callback) {
-    u("body").appendTo("div", { id: "RE_gameframe" });
+    u("body").appendTo("div", { id: "gameframe" });
     if (games.length === 1) {
       return;
     } else {
@@ -1381,7 +1388,7 @@ const re = (function () {
   // and manathe dom
   const start = () => {
     if (games.length < 1 || games.length > 1) {
-      throw new Error("RE: re.mount() should be called and given a built game world");
+      throw new Error("uiedbook: re.mount() should be called and given a built game world");
     }
 
     u(document.body).style({
@@ -1393,7 +1400,7 @@ const re = (function () {
       overflow: "hidden",
     });
 
-    u("#RE_gameframe").style({
+    u("#gameframe").style({
       width: "100vw",
       height: "100vh",
       position: "fixed",
@@ -1412,13 +1419,13 @@ const re = (function () {
       padding: "0px",
       boxSizing: "border-box"
     });
-    const gameframe = get("#RE_gameframe");
+    const gameframe = get("#gameframe");
     flow(gameframe);
   };
   // this stops the game
   const cancel = () => {
-    const fram = get("#RE_gameframe");
-    fram.innerHTML = "";fire
+    const fram = get("#gameframe");
+    fram.innerHTML = "";
     renderer.toggleRendering();
     // fram.append(vsg())
   };
@@ -1491,7 +1498,7 @@ const re = (function () {
     if (p) {
       return p;
     } else {
-      throw new Error('RE: audio id "' + id + '" not found');
+      throw new Error('uiedbook: audio of id "' + id + '" not found');
     }
   }
 
@@ -1507,7 +1514,7 @@ const re = (function () {
     if (p) {
       return p;
     } else {
-      throw new Error('RE: image of id "' + id + '" not found');
+      throw new Error('uiedbook: image of id "' + id + '" not found');
     }
   }
 
@@ -1531,10 +1538,12 @@ other TODOs stuff will be built here
 const entity = function (name, painter, behaviors) {
   /*an entity is any object or thing
  that can be added to the game world*/
-
+if (!painter || !behaviors) {
+  throw new Error("cannot create entity without a paiter and behavior objects");
+}
   //this.id = name || "none" //name of the entity for identification can be used out side here******
   this.name = name || "none";
-  this.painter = painter || {}; // callback for paint the entity     can be used out side here******
+  this.painter = painter; // callback for paint the entity     can be used out side here******
   this.width = 0; // width of entiity                              can be used out side here******
   this.height = 0; // height of entity                             can be used out side here******
   // this.spritWidth = 0;
@@ -1597,15 +1606,14 @@ const imgPainter = function (img, delay = 1) {
   this.image = img;
   this.delay = delay;
   this.range = 0;
+  this.rotate = false;
 };
 imgPainter.prototype = {
   // paint only no update
   paint(entity, context) {
     this.range++;
     if (this.range % this.delay === 0) {
-      context.save();
       context.drawImage(this.image, entity.left, entity.top, entity.width, entity.height);
-      context.restore();
     }
     if (this.range > 100) {
       this.range = 1;
@@ -1630,10 +1638,6 @@ const spriteSheetPainter = function (img, horizontal = 1, vertical = 1, delay = 
   this.animateAllFrames = true;
   this.animate = true;
   this.rotate = false;
-  this.rotateToAngle = 0;
-  this.angle = function (angle) {
-    this.rotateToAngle = angle;
-  };
   this.changeSheet = function (img, horizontal = 0, vertical = 0, delay = 1) {
     this.image = img;
     this.framesWidth = Math.round(this.image.width / horizontal);
@@ -1662,17 +1666,21 @@ spriteSheetPainter.prototype = {
           if (this.frameWidthCount <= this.horizontalPictures - 2) {
             this.frameWidthCount++;
           } else {
-            this.isLastImage = true;
+            
             this.frameWidthCount = 0;
             this.frameHeightCount++;
           }
         } else {
           this.frameHeightCount = 0;
+          this.isLastImage = true;
         }
         if (this.frameHeightCount === this.verticalPictures) {
           this.frameHeightCount++;
         }
       }
+
+
+      
     }
     if (this.range > 100) {
       this.range = 1;
@@ -1680,6 +1688,11 @@ spriteSheetPainter.prototype = {
   },
   paint(entity, context) {
     context.save();
+    if (this.rotate) {
+      context.translate(entity.left, entity.top);
+      context.rotate(this.rotate * Math.PI / 180);
+      context.translate(-entity.left, -entity.top)
+    }
     context.drawImage(
       this.image,
       this.framesWidth * this.frameWidthCount,
@@ -1695,7 +1708,7 @@ spriteSheetPainter.prototype = {
   }
 };
 
-const speaker = function (text, language = "", volume = 1, rate = 1, pitch = 1) {
+const speaker = function (text, language = "en", volume = 1, rate = 1, pitch = 1) {
   // common languages (not supported by all browsers)
   // en - english,  it - italian, fr - french,  de - german, es - spanish
   // ja - japanese, ru - russian, zh - chinese, hi - hindi,  ko - korean
@@ -1703,20 +1716,22 @@ const speaker = function (text, language = "", volume = 1, rate = 1, pitch = 1) 
   // build utterance and speak
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = language;
-  utterance.volume = volume * 0.3 * 3;
+  utterance.volume = volume;
   utterance.rate = rate;
   utterance.pitch = pitch;
   speechSynthesis.speak(utterance);
 };
 
-const speakerStop = () => speechSynthesis && speechSynthesis.cancel();
+
+const speakerStop = () => {
+  return (speechSynthesis && speechSynthesis.cancel());
+};
 
 // play mp3 or wav audio from a local file or url
 const audio = function (audio, loop = 0, volumeScale = 1) {
   this.audio = audio;
   this.audio.loop = loop;
-  this.audio.volume = volumeScale * 0.3;
-  return this.audio;
+  this.audio.volume = volumeScale;
 };
 audio.prototype = {
   play() {
@@ -1773,23 +1788,30 @@ bgPainter.prototype = {
 };
 
 const physics = (function () {
-  function detectCollision(ent, name, reduce = 0) {
-    for (let j = 0; j < name.length; j++) {
-      if (
-        ent.left + reduce > name[j].left + name[j].width ||
-        ent.left + ent.width < name[j].left + reduce ||
-        ent.top > name[j].top + name[j].height ||
-        ent.top + ent.height < name[j].top + reduce
-      ) {
-        // console.log("no collisions");
-        // return false;
+  function detectCollision(ent, entityArray, reduce = 0, skipMe, freeMan) {
+    for (let j = 0; j < entityArray.length; j++) {
+      if (skipMe && entityArray[j].name === ent.name) {
         continue;
       } else {
-        // console.log(`${ent.name} has collided with name of ${name[j].name}`);
-        // return true;
-        name[j].isHit = true;
+        if (
+          (ent.left - reduce) > (entityArray[j].left + entityArray[j].width) ||
+          (ent.left + ent.width) < (entityArray[j].left - reduce) ||
+          ent.top + reduce > (entityArray[j].top + entityArray[j].height) ||
+          (ent.top + ent.height) < (entityArray[j].top - reduce)
+        ) {
+          continue;
+        } else {
+          entityArray[j].isHit = true;
+          ent.isHit = true;
+          if (entityArray[j].name !== freeMan) {
+            entityArray.splice(j,1);
+            --j; 
+          }
+          // console.log(entityArray[j].name,j);
+        }
       }
     }
+    return entityArray;
   }
 
   return {
@@ -1802,30 +1824,46 @@ const renderer = (function () {
   let canvas,
     id, // for pausing or playing the game
     context,
-    // variables for the timing
     fps,
-    // background varible
+        // variables for the timing
+    fpso = 0,
     lastdt = 0,
-    nextdt = 0,
     pause = false,
-    deltaTime;
+    deltaTime,
+    started = false,
+    useBg = false;
   const bg = [],
-    // entity storage array
-    entitysArray = [];
+    entitysArray = [], // entity storage array
+    screen = buildCanvas("uiedbook_game_canvas"),
+      painter = screen.getContext("2d"), pool = [];
+    
+  function keepEntity(ent) {
+      if (!ent) return;
+    pool.push(ent);
+  }
 
+    function getFreeEntity(id) {
+      let freeNigga;
+      if (pool.length !== 0) {
+        for (let i = 0; i < pool.length; i++){
+          if (pool[i].name === id) {
+            freeNigga = pool[i];
+            pool.splice(i, 1);
+            i--;
+            break;
+          }
+        }
+      }
+      return freeNigga;
+    }
+  
   function bgPaint(img, speed, up, left) {
     const bgImg = new bgPainter(img, speed, up, left);
     bg.push(bgImg);
+    useBg = true;
     return bgImg;
   }
 
-  function animatebg(canvas) {
-    if (bg === []) return false;
-    bg.forEach(b => {
-      b.paint(canvas);
-      b.update();
-    });
-  }
 
   function _assemble(...players) {
     if (!players) throw new Error("RE: No players assembled");
@@ -1834,70 +1872,109 @@ const renderer = (function () {
     });
     return entitysArray;
   }
+  
   function copyCanvasTo(c, opacity, border) {
     const cx = c.getContext("2d");
-    cx.drawImage(canvas, 0, 0, c.width, c.height);
+    cx.drawImage(screen, 0, 0, c.width, c.height);
     c.style.opacity = opacity;
     c.style.borderRadius = border;
     return c;
   }
 
   function toggleRendering() {
+    if (!started) {
+      throw new Error("renderer.render() has not been called")
+    }
     if (pause) {
       window.requestAnimationFrame(animate);
-      return (pause = false);
+      pause = false;
     } else {
       window.cancelAnimationFrame(id);
-      return (pause = true);
+      pause = true;
     }
   }
 
-  function animate(dt) {
-    id = window.requestAnimationFrame(animate);
-    deltaTime = dt - lastdt;
+  function currentFPS() {
+   console.log(fpso);
+    return fpso;
+  }
+  
+    let seconds = 1000;
+  function calcFPS(dt) {
+  deltaTime = Math.round(dt - lastdt);
     lastdt = dt;
-    nextdt += Math.round(deltaTime);
-    if (nextdt > fps) {
-      try {
-        context.clearRect(0, 0, canvas.width, canvas.height);
-        animatebg(canvas);
+      seconds = seconds - deltaTime;
+      fpso++;
+    if (seconds < 1) {
+      console.log(fpso);
+      fpso = 0;
+      seconds = 1000;
+    }
+
+    if (deltaTime > fps) {      
+      return true;
+    } else {
+      return false;
+  }
+  }
+
+
+  function  animate(dt) {
+    id = window.requestAnimationFrame(animate);
+    if (calcFPS(dt)) {
+      try {                  
+        if (useBg){ 
+          bg.forEach(b => {
+            b.paint(screen);
+            b.update();
+          });
+        }
+
         entitysArray.forEach((ent, i) => {
           if (ent.delete) {
+            keepEntity(ent);
             entitysArray.splice(i, 1);
             --i;
           }
-
           if (ent.border) {
-            ent.observeBorder(canvas.width, canvas.height);
+             ent.observeBorder(screen.width, screen.height);
           }
-          //   console.log(entitysArray);
-          ent.update(context, dt);
-          ent.run(context, dt);
-          ent.paint(context, dt);
+        ent.update(painter);
+        ent.run(painter);
+        ent.paint(painter);
         });
+        // drawing the on-screen canvas
+        context.drawImage(screen, 0, 0, canvas.width, canvas.height);
+        painter.clearRect(0, 0, screen.width, screen.height);
       } catch (error) {
-        throw new Error(`RE: the canvas cannot be animated due to some errors > ${error}`);
+        throw new Error(`the canvas cannot be animated due to some errors | ${error}`);
       }
     }
-    nextdt = 0;
   }
+
 
   function _render(canv, fpso = 0) {
     if (!canv) {
-      throw new Error("RE: game needs to be rendered EXP: renderer.render(canvas)");
+      throw new Error("game needs to be rendered EXP: renderer.render(canvas)");
     }
     canvas = canv;
-    context = canvas.getContext("2d");
+    context = canv.getContext("2d");
+    screen.height = canvas.height;
+    screen.width = canvas.width;
     fps = fpso;
-    animate(0);
-  }
+    started = true;
+      id =  window.requestAnimationFrame(animate);
+    }
 
   return {
     render: _render,
     assemble: _assemble,
     toggleRendering: toggleRendering,
     backgroundImage: bgPaint,
-    copyCanvasTo: copyCanvasTo
+    copyCanvasTo: copyCanvasTo,
+    keepEntity: keepEntity,
+    getFreeEntity: getFreeEntity,
+    currentFPS: currentFPS,
   };
 })();
 
@@ -1931,7 +2008,7 @@ const uiedbook = {
   swipe,
   buildCanvas,
   appendCanvas,
-  re,
+  game,
   entity,
   imgPainter,
   spriteSheetPainter,
@@ -1943,7 +2020,7 @@ const uiedbook = {
   physics,
   route
 };
-// 37 apis contexts
+// 38 apis contexts
 
 if (typeof module !== "undefined") {
   module["exports"] = uiedbook;
