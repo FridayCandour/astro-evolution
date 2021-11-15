@@ -1,5 +1,3 @@
-// const { u } = require("./uiedbook");
-
 let i = -1;
 const opener = build("div", {id: "opener"})
 const pop = build("button", {id: "rules", className: "btn", innerText: "Menu"});
@@ -35,7 +33,7 @@ css("#bar",
     {
         width: "100%",
         height: "98%",
-        "background-color": "#ff9800"
+        "background-color": "#36f76c"
 });
 
 const template = build("div", { id: "astroID" }, [pop, pause, scores, lifeBar]);
@@ -104,7 +102,7 @@ u(template).style({
 u(opener).style({
     width: "100vw",
     height: "100vh",
-    backgroundImage: "url("+"space11.png"+")",
+    backgroundImage: "url("+"background.jpg"+")",
     backgroundRepeat: "no-repeat",
     backgroundPosition: "center",
     backgroundSize: "cover",
@@ -147,25 +145,6 @@ const space = game.build("space");
 space_canvas = buildCanvas("space_canvas"); 
 space.append(space_canvas);
 
-u("#play").on("click", ()=>{
-        u(opener).scaleIn()
-        renderer.render(space_canvas,1);
-        game.mount(space);
-        game.start();
-        // waves.toggle();
-    u(endGame).scaleIn();
-});
-u(pop).on("click", ()=>{
-    u(opener).scaleOut()
-    u(endGame).scaleIn()
-    renderer.toggleRendering()
-    // waves.toggle();
-});
-
-u("#pause").on("click", () => {
-    renderer.toggleRendering()
-    // waves.toggle()
-});
 u(endGame).style({
     width: "80%",
     height: "80%",

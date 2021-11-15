@@ -804,9 +804,17 @@ const get = (...uied) => {
 let container = get("container");
 */
 
-const rad = num => {
+const rad = (num, lowestValue = 0, highestValue = num) => {
   // for getting more purer random number
-  return Math.floor(Math.random() * Math.floor(num));
+  function getRAndomNumber() {
+    let randomNumber = Math.floor(Math.random() * Math.floor(num));
+   return randomNumber 
+  }
+  let randomNumber = getRAndomNumber();
+  if (randomNumber <= lowestValue || randomNumber >= highestValue) {
+    randomNumber = getRAndomNumber()
+ }
+  return randomNumber
 };
 /*
  *** HOW TO USE ***
@@ -1353,7 +1361,7 @@ const game = (function () {
 
   // the build function is for creating the game div
   // and allowing the dev to build upon it
-  function build(viewID) {
+  function build(viewID,callback) {
     const frame = document.createElement("div");
     if (viewID) {
       frame.setAttribute("id", viewID);
@@ -1363,6 +1371,7 @@ const game = (function () {
       width: "100vw",
       backgroundColor: "black"
     });
+    mount(frame, callback)
     return frame;
   }
 
@@ -1378,7 +1387,7 @@ const game = (function () {
       games.push(template);
     }
     if (!callback) return;
-    return callback();
+    return callback.call(template);
   }
   // the flow function ochastrate the game play
   function flow(fram) {
@@ -1386,10 +1395,11 @@ const game = (function () {
   }
   // the start function starts the game
   // and manathe dom
-  const start = () => {
+  const start = (canvas, fps) => {
     if (games.length < 1 || games.length > 1) {
-      throw new Error("uiedbook: re.mount() should be called and given a built game world");
+      throw new Error("uiedbook: game.mount() should be called and given a built game world");
     }
+
 
     u(document.body).style({
       margin: "0px",
@@ -1421,9 +1431,10 @@ const game = (function () {
     });
     const gameframe = get("#gameframe");
     flow(gameframe);
+    renderer.render(canvas, fps);
   };
   // this stops the game
-  const cancel = () => {
+  const end = () => {
     const fram = get("#gameframe");
     fram.innerHTML = "";
     renderer.toggleRendering();
@@ -1438,63 +1449,81 @@ const game = (function () {
     return this.wig;
   };
 
-  const imagesArray = [],
-    audioArray = [];
-  function loadImage(img, id) {
-    if (typeof img === "object" && !id) {
-      for (let i = 0; i < img.length; i++) {
+  async function contentLoader(type, id, url) {
+    if (type === "img") {
+      let img;
+      const loaded = await new Promise((res, rej) => {
         const p = new Image();
-        p.src = img[i][0];
-        p.id = img[i][1];
-        // p.onload = ()=>{
-        imagesArray.push(p);
-        // }
-      }
+        try {
+        p.src = url;
+        p.id = id;
+        p.addEventListener("load", res.call(p), { once: true });
+        img =  p;
+        } catch (error) {
+          rej(error)
+        }
+      })
+      return img;
     } else {
-      if (img && id) {
-        const i = new Image();
-        i.src = img;
-        i.id = id;
-        // i.onload = ()=>{
-        imagesArray.push(i);
-        // };
-      } else {
-        throw new Error("cannot load image(s)");
+      if (type === "aud") {
+        let aud;
+          const loaded = await new Promise((res, rej) => {
+        try {
+        const p = new Audio();
+        p.src = url;
+        p.id = id;
+          p.addEventListener("load", res.call(p), { once: true });
+          aud =  p;
+        } catch (error) {
+          rej(error)
+        }
+      })
+      return aud;
       }
     }
   }
-  function loadAudio(img, id) {
-    if (typeof img === "object" && !id) {
+
+  const imagesArray = [],
+    audioArray = [];
+  async function loadImage(img, id) {
+    if (Array.isArray(img) && !id) {
       for (let i = 0; i < img.length; i++) {
-        const p = new Audio();
-        p.src = img[i][0];
-        p.id = img[i][1];
-        // p.onload = ()=>{
-        audioArray.push(p);
-        // }
+        if (!img[i][0] || !img[i][1]) {
+          throw new Error(`uiedbook: image url or id not specified correctly for the ${i} image`);
+        }
+        const p = await contentLoader("img", img[i][1], img[i][0]);
+        imagesArray.push(p);
       }
     } else {
       if (img && id) {
-        const i = new Image();
-        i.src = img;
-        i.id = id;
-        // i.onload = ()=>{
+        const i = await contentLoader("img", img, id);
         imagesArray.push(i);
-        // };
       } else {
-        throw new Error("cannot load image(s)");
+        throw new Error(`uiedbook: image url or id not specified`);
+      }
+    }
+  }
+  async function loadAudio(img, id) {
+    if (Array.isArray(img) && !id) {
+      for (let i = 0; i < img.length; i++) {
+         if (!img[i][0] || !img[i][1]) {
+          throw new Error(`uiedbook: audio url or id not specified correctly for the ${i} audio`);
+        }
+        const p = await contentLoader("aud", img[i][1], img[i][0]);
+        audioArray.push(p);
+      }
+    } else {
+      if (img && id) {
+        const i = await contentLoader("aud", img, id);
+        audioArray.push(i);
+      } else {
+        throw new Error(`uiedbook: audio url or id not specified`);
       }
     }
   }
 
   function getAud(id) {
-    let p;
-    for (let i = 0; i < audioArray.length; i++) {
-      if (audioArray[i].id === id) {
-        p = audioArray[i];
-        break;
-      }
-    }
+    const p = audioArray.find(ent => ent.id === id);
     if (p) {
       return p;
     } else {
@@ -1503,14 +1532,7 @@ const game = (function () {
   }
 
   function getImg(id) {
-    let p;
-    for (let i = 0; i < imagesArray.length; i++) {
-      if (imagesArray[i].id === id) {
-        // console.log(imagesArray[i]);
-        p = imagesArray[i];
-        break;
-      }
-    }
+    const p = imagesArray.find(ent => ent.id === id);
     if (p) {
       return p;
     } else {
@@ -1521,13 +1543,12 @@ const game = (function () {
   return {
     build: build,
     makeWidget: widget,
-    mount: mount,
     start: start,
     loadImage: loadImage,
     loadAudio: loadAudio,
     getImg: getImg,
     getAud: getAud,
-    cancel: cancel
+    end: end
   };
 })();
 // END OF THE main RE ENGINE////////////////////////
@@ -1635,7 +1656,7 @@ const spriteSheetPainter = function (img, horizontal = 1, vertical = 1, delay = 
   this.range = 0;
   this.delay = delay;
   this.isLastImage = false;
-  this.animateAllFrames = true;
+  this.animateAllFrames = (horizontal === 1) && (vertical === 1)? false: true;
   this.animate = true;
   this.rotate = false;
   this.changeSheet = function (img, horizontal = 0, vertical = 0, delay = 1) {
@@ -1645,16 +1666,17 @@ const spriteSheetPainter = function (img, horizontal = 1, vertical = 1, delay = 
     this.horizontalPictures = horizontal;
     this.verticalPictures = vertical;
     this.delay = delay;
+    
   };
 
-  this.animateFrameOf = function (frameY = 0) {
-    this.frameHeightCount = frameY;
-    if (this.frameWidthCount <= this.horizontalPictures - 2) {
-      this.frameWidthCount++;
-    } else {
-      this.frameWidthCount = 0;
-    }
-  };
+
+
+
+    this.animateFrameOf = function (frameY = 0) {
+    this.frameY = frameY;
+  }
+
+
 };
 
 spriteSheetPainter.prototype = {
@@ -1678,6 +1700,14 @@ spriteSheetPainter.prototype = {
           this.frameHeightCount++;
         }
       }
+    if (this.frameY) {
+    this.frameHeightCount = this.frameY;
+   if (this.frameWidthCount <= this.horizontalPictures - 2) {
+      this.frameWidthCount++;
+    } else {
+      this.frameWidthCount = 0;
+    }
+  }
 
 
       
@@ -1790,7 +1820,7 @@ bgPainter.prototype = {
 const physics = (function () {
   function detectCollision(ent, entityArray, reduce = 0, skipMe, freeMan) {
     for (let j = 0; j < entityArray.length; j++) {
-      if (skipMe && entityArray[j].name === ent.name) {
+      if (skipMe && (entityArray[j].name === ent.name)) {
         continue;
       } else {
         if (
@@ -1805,7 +1835,7 @@ const physics = (function () {
           ent.isHit = true;
           if (entityArray[j].name !== freeMan) {
             entityArray.splice(j,1);
-            --j; 
+            --j;
           }
           // console.log(entityArray[j].name,j);
         }
@@ -1906,7 +1936,7 @@ const renderer = (function () {
       seconds = seconds - deltaTime;
       fpso++;
     if (seconds < 1) {
-      console.log(fpso);
+      // console.log(fpso);
       fpso = 0;
       seconds = 1000;
     }

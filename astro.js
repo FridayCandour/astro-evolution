@@ -1,33 +1,68 @@
 const wH = space_canvas.width;
 const vH = space_canvas.height;
-// let a = opener.getBoundingClientRect();
-renderer.backgroundImage(game.getImg("space8"),6,true);
-const waves = new audio(game.getAud("hum"),1,1);
-const shoot = new audio(game.getAud("fire",1,0.1));
+renderer.backgroundImage(game.getImg("space7"),6,true);
+const waves = new audio(game.getAud("hum"),0.5,1);
+const shoot = new audio(game.getAud("spacer", 0.1));
+const missleSound = new audio(game.getAud("power",0.1));
 let lifeCounter = 500;
-let eArray = [];
+let eArray = [],
+    missleShooting = 10;
 
-const jetBehavior = function (jet){ 
-    jetPainter.animateAllFrames = false;
-    jetPainter.delay = 1;
-    if (down === true) {jet.top += 20}
-    down = false;
-    if (right === true) {jet.left += 20}
-    right = false;
-    if (left === true) {jet.left -= 20}
-    left = false;
-    if (up === true) {jet.top -= 20}
-    up = false;
+const jetBehavior = function (jet){
+    missleShooting++;
+    if (missle === true && right === true && missleShooting % 10 === 0) {
+        makemissles(26, 0, "right");
+        missle = false;
+        if (missleShooting > 119) {
+            missleShooting = 0
+        }
+    }
+        if (missle === true && left === true && missleShooting % 10 === 0) {
+            makemissles(26, 0, "left");
+            missleSound.play();
+            missle = false;
+            if (missleShooting > 119) {
+            missleShooting = 0
+        }
+    }
+    if (down === true) {
+        jet.top += 20;
+        down = false;
+    }
+    
+    if (right === true) {
+        jet.left += 20;
+        right = false;
+    }
+    
+    if (left === true) {
+        jet.left -= 20;
+        left = false;
+    }
+    
+    if (up === true) {
+        jet.top -= 20;
+        up = false;
+    }
+    
     if (fire === true) {
-        makeBullet(game.getImg("bullet4"), 1,jet,20, true, 0);
+        makeBullet(game.getImg("bullet4"), jet, 20, true, 10, 0);
         // shoot.play();
     }
     fire = false;
 
+
     if (jet.isHit === true) {
         lifeCounter--;
+        if (lifeCounter < 250) {
+            bar.style.backgroundColor = "yellow";
+        }
+        if (lifeCounter < 150) {
+            bar.style.backgroundColor = "red";
+        }
+        bar.style.width = `${Math.round((lifeCounter / 500) * 100)}%`;
         if (lifeCounter === 0) {
-        jetPainter.changeSheet(game.getImg("explosion3"),8,1,1);
+        jetPainter.changeSheet(game.getImg("explosion1"),8,1,1);
         jetPainter.animateAllFrames = true;
     if (jetPainter.isLastImage) {
         jet.delete = true;
@@ -38,8 +73,6 @@ const jetBehavior = function (jet){
 }
 jet.isHit = false;
 }
- 
-eArray = physics.detectCollision(jet,[...eArray], 10, true);
     if (eArray.length < 2) {
     eArray = [...eArray, ...makeEnemies(6, jet.left, jet.top,jet.left + jet.width,jet.top + jet.height)];
 }

@@ -1,33 +1,29 @@
-
-let maxBullets = 50;
-// creating bullets
-function makeBullet(img, number,ent, speed = 60, win, latency, angle, sr) {
+function makeBullet(img, ent, speed = 60, win, latency, angle, sr) {
   let bp,
   go = 0;
   if (win) {
-    bp = ent.top - 25;
+    bp = ent.top - 34;
   }else{
     bp = ent.top + 60;
   }
-  for (let i = 0; i < number; i++) {
-      maxBullets--;
-        const bulletPainter = new spriteSheetPainter(img,1,1,1);
-        const bulletBehaviour = function (bullet) {
-          bulletPainter.animateAllFrames = false;
+    const bulletPainter = new spriteSheetPainter(img,1,1,1);
+    const bulletBehaviour = function (bullet) {
           bulletPainter.rotate = angle;
           eArray  = physics.detectCollision(bullet,[...eArray], latency, false, "jet");
           if (win) {
             bullet.top -=  speed;
           }
 
-          if (!win && !sr) {
+      if (!win && !sr) {
+            bulletPainter.rotate = angle;
             bullet.top +=  speed;
              bullet.left += 4;
              go = Math.round((ent.left + (ent.width * 0.85)));
           }else{
             if (!win && sr) {
+              bulletPainter.rotate = angle;
               bullet.top +=  speed;
-              bullet.left -= 4; 
+              bullet.left -= 4;
               go = Math.round((ent.left + (ent.width * 0.85)))
             }
           }       
@@ -41,7 +37,8 @@ function makeBullet(img, number,ent, speed = 60, win, latency, angle, sr) {
       if (bulletPainter.isLastImage) {
         bullet.delete = true;
       }}
-        }
+    }
+  
         if (win) {
           go = Math.round((ent.left + (ent.width * 0.45)));
         }
@@ -53,22 +50,8 @@ function makeBullet(img, number,ent, speed = 60, win, latency, angle, sr) {
             bp = ent.top + 60;
           }
         }
-        if (maxEnemies = 0) {
-           maxEnemies = 50;
-         }
-      if (maxBullets > 1) {
         const bullet = new entity("bullet", bulletPainter, bulletBehaviour);
         u(bullet).config({ top: bp, left: go, width: 12, height: 22, border: false});
         renderer.assemble(bullet);
         return bullet;
-      } else {
-
-        const bullet = renderer.getFreeEntity("bullet");
-        // bullet.behaviors = bulletBehaviour;
-        // console.log(bullet.behaviors);
-        u(bullet).config({ top: bp, left: go, width: 12, height: 22, border: false});
-        renderer.assemble(bullet);
-        return bullet;
-      }
-    }
 }
