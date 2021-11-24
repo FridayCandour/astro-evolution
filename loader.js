@@ -55,8 +55,3 @@ game.loadImage([
         ["sounds/wav.wav","wav"],
         ["sounds/spacer.wav","spacer"]
     ])
-
-        window.onload = function () {
-        console.log('Loaded');
-        }
-      

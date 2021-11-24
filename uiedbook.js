@@ -1987,7 +1987,7 @@ const renderer = (function () {
   }
 
   function currentFPS() {
-   console.log(fpso);
+   console.log("current fps is  " + fpso);
     return fpso;
   }
   
