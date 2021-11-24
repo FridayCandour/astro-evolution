@@ -40,7 +40,8 @@ game.loadImage([
 
     // here am loading all  the audio 
     game.loadAudio([
-        ["sounds/start.wav","start"],
+        ["sounds/start.wav", "start"],
+        ["sounds/lase.mp3","lase"],
         ["sounds/hum.wav","hum"],
         ["sounds/pause.wav","pause"],
         ["sounds/power-up.wav","power"],
@@ -54,3 +55,8 @@ game.loadImage([
         ["sounds/wav.wav","wav"],
         ["sounds/spacer.wav","spacer"]
     ])
+
+        window.onload = function () {
+        console.log('Loaded');
+        }
+      

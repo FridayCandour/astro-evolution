@@ -1,14 +1,17 @@
+
+
 const wH = space_canvas.width;
 const vH = space_canvas.height;
-renderer.backgroundImage(game.getImg("space7"),6,true);
+// renderer.backgroundImage(game.getImg("space7"),6,true);
 const waves = new audio(game.getAud("hum"),0.5,1);
 const shoot = new audio(game.getAud("spacer", 0.1));
-const missleSound = new audio(game.getAud("power",0.1));
-let lifeCounter = 500;
+const missleSound = new audio(game.getAud("lase"), 0.04);
+let lifeCounter = 5;
 let eArray = [],
-    missleShooting = 10;
+    missleShooting = 10,
+    Enemies = 1;
 
-const jetBehavior = function (jet){
+const jetBehavior = function (jet) {
     missleShooting++;
     if (missle === true && right === true && missleShooting % 10 === 0) {
         makemissles(26, 0, "right");
@@ -19,7 +22,7 @@ const jetBehavior = function (jet){
     }
         if (missle === true && left === true && missleShooting % 10 === 0) {
             makemissles(26, 0, "left");
-            missleSound.play();
+            // missleSound.play();
             missle = false;
             if (missleShooting > 119) {
             missleShooting = 0
@@ -62,10 +65,10 @@ const jetBehavior = function (jet){
         }
         bar.style.width = `${Math.round((lifeCounter / 500) * 100)}%`;
         if (lifeCounter === 0) {
-        jetPainter.changeSheet(game.getImg("explosion1"),8,1,1);
-        jetPainter.animateAllFrames = true;
+        jetPainter.changeSheet(game.getImg("explosion"),8,6,2);
     if (jetPainter.isLastImage) {
         jet.delete = true;
+        console.log("doemmmmmmmmm");
         u(endGame).scaleOut();
         u(endGame).style({ transform: "translate(-50%, -50%)" });
         renderer.toggleRendering()
@@ -74,12 +77,13 @@ const jetBehavior = function (jet){
 jet.isHit = false;
 }
     if (eArray.length < 2) {
-    eArray = [...eArray, ...makeEnemies(6, jet.left, jet.top,jet.left + jet.width,jet.top + jet.height)];
+        Enemies++;
+    eArray = [...eArray, ...makeEnemies(Enemies, jet.left, jet.top,jet.left + jet.width,jet.top + jet.height)];
 }
 };
 // the player 
 const jetPainter = new spriteSheetPainter(game.getImg("jet3"),1,1,1);
 const jet = new entity("jet", jetPainter, jetBehavior);
 eArray.push(jet);
-u(jet).config({top: Math.round((space_canvas.height - jet.height)), left: Math.round((space_canvas.width - (jet.width * 0.5)) * 0.5) , width: (0.06 * wH), height: 150});
+u(jet).config({top: Math.round((wH - jet.height + 200)), left: Math.round((vH - (jet.width)) * 0.5) , width: (0.06 * wH), height: 150});
 renderer.assemble(jet);

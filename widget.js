@@ -1,13 +1,29 @@
 let i = -1;
-const opener = build("div", {id: "opener"})
+const gameName = build("p", {id: "gameName", innerText: "ASTRO EVOLUTION - genesis"})
+const opener = build("div", { id: "opener" }, gameName,);
 const pop = build("button", {id: "rules", className: "btn", innerText: "Menu"});
-const scores = build("button", {id: "scor0es", className: "btn", start: ()=>{
+const scores = build("button", {id: "scores", className: "btn", start: ()=>{
     i++;
     u(scores).text(i);
     let img = u(scores).appendTo("img", { src: "images/gem.png", height: 16, width: 16 });
     u(img).style({margin: "0px 10px"})
 }
 });
+
+u(document.body).style({
+    margin: "0px",
+    padding: "0px",
+    overflow: "hidden"
+});
+
+u(gameName).style({
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "3rem",
+    fontFamily: "courier",
+    textShadow: "0px 0px 18px whitesmoke"
+})
 u(scores).style({
     display: "flex",
     alignItems: "center",
@@ -36,7 +52,7 @@ css("#bar",
         "background-color": "#36f76c"
 });
 
-const template = build("div", { id: "astroID" }, [pop, pause, scores, lifeBar]);
+const template = build("div", { id: "astroID" }, [ pop, pause, scores, lifeBar]);
 buildTo([template, opener], "body");
 const rules = u(opener).appendTo("button", {id: "rule"}, 7);
 const play = u(opener).appendTo("button", {id: "play", innerText: "play"}, 1);
@@ -56,8 +72,8 @@ css("#rule",
     "margin-top": "9px",
     color: "grey",
     "min-width": "40px",
-    "min-height": "80px",
-    "max-width": "70%",
+    "min-height": "60px",
+    "max-width": "60%",
     border: "1px gray solid",
     display: "flex",
     "align-items": "center",
@@ -76,7 +92,7 @@ css("#rule:hover",
 });
 css(".btn",
 {"font-family": "courier",
-"font-size": "14px",
+// "font-size": "14px",
 padding: "4px",
 "max-width": "10%",
 height: "3vh",

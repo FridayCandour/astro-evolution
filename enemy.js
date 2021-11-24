@@ -33,7 +33,7 @@ function makeEnemies(number, lp, tp, rp, bp) {
             enemyPainter.rotate = 180;
         }
         shooting++;
-        if (shooting % 30 === 0) {
+        if (shooting % 50 === 0) {
             makeBullet(game.getImg("bullet4"), enemy, 10, false, 50, enemyPainter.rotate, sr);
             // shoot.play();
         }

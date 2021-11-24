@@ -1449,6 +1449,7 @@ const game = (function () {
     return this.wig;
   };
 
+  /*
   async function contentLoader(type, id, url) {
     if (type === "img") {
       let img;
@@ -1522,9 +1523,70 @@ const game = (function () {
     }
   }
 
+  */
+
+
+///*
+  function contentLoader(type, id, url) {
+    if (type === "img") {
+      const p = new Image();
+        p.src = url;
+        p.id = id;
+      return p;
+    } else {
+      if (type === "aud") {
+        const p = new Audio();
+        p.src = url;
+        p.id = id;
+          return p;
+      }
+    }
+  }
+
+  const imagesArray = [],
+    audioArray = [];
+  function loadImage(img, id) {
+    if (Array.isArray(img) && !id) {
+      for (let i = 0; i < img.length; i++) {
+        if (!img[i][0] || !img[i][1]) {
+          throw new Error(`uiedbook: image url or id not specified correctly for the ${i} image`);
+        }
+        const p = contentLoader("img", img[i][1], img[i][0]);
+        imagesArray.push(p);
+      }
+    } else {
+      if (img && id) {
+        const i = contentLoader("img", img, id);
+        imagesArray.push(i);
+      } else {
+        throw new Error(`uiedbook: image url or id not specified`);
+      }
+    }
+  }
+  function loadAudio(img, id) {
+    if (Array.isArray(img) && !id) {
+      for (let i = 0; i < img.length; i++) {
+         if (!img[i][0] || !img[i][1]) {
+          throw new Error(`uiedbook: audio url or id not specified correctly for the ${i} audio`);
+        }
+        const p = contentLoader("aud", img[i][1], img[i][0]);
+        audioArray.push(p);
+      }
+    } else {
+      if (img && id) {
+        const i = contentLoader("aud", img, id);
+        audioArray.push(i);
+      } else {
+        throw new Error(`uiedbook: audio url or id not specified`);
+      }
+    }
+  }
+ //*/
+
   function getAud(id) {
     const p = audioArray.find(ent => ent.id === id);
     if (p) {
+      // console.log(p);
       return p;
     } else {
       throw new Error('uiedbook: audio of id "' + id + '" not found');
@@ -1534,6 +1596,7 @@ const game = (function () {
   function getImg(id) {
     const p = imagesArray.find(ent => ent.id === id);
     if (p) {
+      // console.log(p);
       return p;
     } else {
       throw new Error('uiedbook: image of id "' + id + '" not found');
@@ -1666,11 +1729,8 @@ const spriteSheetPainter = function (img, horizontal = 1, vertical = 1, delay = 
     this.horizontalPictures = horizontal;
     this.verticalPictures = vertical;
     this.delay = delay;
-    
+  this.animateAllFrames = (horizontal === 1) && (vertical === 1)? false: true;    
   };
-
-
-
 
     this.animateFrameOf = function (frameY = 0) {
     this.frameY = frameY;
@@ -1688,18 +1748,18 @@ spriteSheetPainter.prototype = {
           if (this.frameWidthCount <= this.horizontalPictures - 2) {
             this.frameWidthCount++;
           } else {
-            
             this.frameWidthCount = 0;
             this.frameHeightCount++;
           }
         } else {
-          this.frameHeightCount = 0;
           this.isLastImage = true;
+          this.frameHeightCount = 0;
         }
-        if (this.frameHeightCount === this.verticalPictures) {
-          this.frameHeightCount++;
+        if (this.frameHeightCount === this.verticalPictures - 1) {
+          this.isLastImage = false;
         }
       }
+
     if (this.frameY) {
     this.frameHeightCount = this.frameY;
    if (this.frameWidthCount <= this.horizontalPictures - 2) {
@@ -1758,7 +1818,7 @@ const speakerStop = () => {
 };
 
 // play mp3 or wav audio from a local file or url
-const audio = function (audio, loop = 0, volumeScale = 1) {
+const audio = function (audio, volumeScale = 1,  loop = 0) {
   this.audio = audio;
   this.audio.loop = loop;
   this.audio.volume = volumeScale;
@@ -1902,7 +1962,9 @@ const renderer = (function () {
     });
     return entitysArray;
   }
-  
+    function getAll() {
+    return entitysArray;
+  }
   function copyCanvasTo(c, opacity, border) {
     const cx = c.getContext("2d");
     cx.drawImage(screen, 0, 0, c.width, c.height);
@@ -1936,7 +1998,7 @@ const renderer = (function () {
       seconds = seconds - deltaTime;
       fpso++;
     if (seconds < 1) {
-      // console.log(fpso);
+      console.log(fpso);
       fpso = 0;
       seconds = 1000;
     }
@@ -1952,14 +2014,18 @@ const renderer = (function () {
   function  animate(dt) {
     id = window.requestAnimationFrame(animate);
     if (calcFPS(dt)) {
-      try {                  
-        if (useBg){ 
-          bg.forEach(b => {
-            b.paint(screen);
-            b.update();
-          });
-        }
-
+      try {
+        
+        // if (useBg){ 
+          //  bg.forEach(b => {
+          //   b.paint(screen);
+          //   b.update();
+          // });
+          // painter.drawImage(game.getImg("space7"), 0, 0, screen.width, screen.height)
+        // }
+        // screen.width = screen.height = 0;
+        // screen.width = canvas.width
+        //  screen.height = canvas.height;
         entitysArray.forEach((ent, i) => {
           if (ent.delete) {
             keepEntity(ent);
@@ -1973,9 +2039,11 @@ const renderer = (function () {
         ent.run(painter);
         ent.paint(painter);
         });
+        
         // drawing the on-screen canvas
+        context.clearRect(0, 0, screen.width, screen.height)
         context.drawImage(screen, 0, 0, canvas.width, canvas.height);
-        painter.clearRect(0, 0, screen.width, screen.height);
+        painter.clearRect(0, 0, screen.width, screen.height)
       } catch (error) {
         throw new Error(`the canvas cannot be animated due to some errors | ${error}`);
       }
@@ -2005,6 +2073,7 @@ const renderer = (function () {
     keepEntity: keepEntity,
     getFreeEntity: getFreeEntity,
     currentFPS: currentFPS,
+    getAll: getAll,
   };
 })();
 
