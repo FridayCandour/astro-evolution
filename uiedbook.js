@@ -14,6 +14,83 @@ YOU SHOULD GET A COPY OF THE APACHE LICENSE V 2.0 IF IT DOESN'T ALREADY COME WIT
 */
 
 "use strict";
+
+function lit(type, label) {
+  label = typeof label === "number" ? `line ${label}` : label;
+
+  // let S_arrays = ["string"];
+  // let N_arrays = ["number"];
+  // let O_arrays = ["object"];
+  // let A_arrays = ["array"];
+  // let F_arrays = ["function"];
+
+  return function (value) {
+    if (Array.isArray(type) && Array.isArray(value)) {
+      // typing for arrays
+      value = value.sort();
+      type = type.sort();
+      for (let i = 0; i < type.length; i++) {
+        if (typeof value[i] === type[i] || value[i] === type[i]) {
+          continue;
+        } else {
+          console.warn(
+            `TYPER:-: type ${value} is not assignable to type ${type} at  >>> ${label}`
+          );
+        }
+      }
+    } else {
+      // checking for objects
+      for (const k in type) {
+        if (typeof value[k] === type[k] || value[k] === type[k]) {
+          continue;
+        } else {
+          console.warn(
+            `TYPER:-: the object types for type and value are not assignable at  >>> ${label}`
+          );
+          break;
+        }
+      }
+    }
+    return value;
+  };
+}
+
+// single values not objects
+const t = function (...args) {
+  let label = args.pop();
+  label = typeof label === "number" ? `line ${label}` : label;
+  const type = args.length === 1 ? args.pop() : args;
+  return function (value) {
+    if (!Array.isArray(type)) {
+      // for single types
+      if (value === type || typeof value === type) {
+        return value;
+      } else {
+        console.warn(
+          `TYPER:-: type ${typeof value} is not assignable to type ${type} at >>> ${label}`
+        );
+      }
+    } else {
+      // for union types
+      for (let i = 0; i < type.length; i++) {
+        const typ = type[i];
+        if (typeof value === typ || value === typ) {
+          return value;
+        } else {
+          if (i === type.length - 1) {
+            console.warn(
+              `warning:-: type ${typeof value} is not assignable to types ${
+                type[0]
+              }, ${type[1]}...  at ${label}`
+            );
+            return false;
+          }
+        }
+      }
+    }
+  };
+};
+
 const css = (name, sel, properties) => {
   /*This is for creating
  css styles using javascipt*/
@@ -58,7 +135,7 @@ const media = (value, ...properties) => {
   const proplen = properties.length;
   let totalAnimation,
     Animation = "  ";
-  const animationStep = num => {
+  const animationStep = (num) => {
     for (const [k, v] of Object.entries(properties[num][1])) {
       style += "" + k + ": " + v + ";";
     }
@@ -117,7 +194,7 @@ const animate = (name, ...properties) => {
     Animation = "  ",
     totalAnimation = null;
 
-  const animationStep = num => {
+  const animationStep = (num) => {
     for (const [k, v] of Object.entries(properties[num][1])) {
       style += "" + k + ": " + v + ";";
     }
@@ -159,7 +236,6 @@ animate("popanimation",
 
 
 */
-
 
 // in construction
 const build = (...layouts) => {
@@ -206,20 +282,19 @@ const build = (...layouts) => {
 
 const buildTo = function (child, parent) {
   if (typeof parent === "string") {
-      document.querySelectorAll(parent).forEach(function (par) {
-          if (Array.isArray(child)) {
-              child.forEach(function (ch) {
-                  par.append(ch);
-              });
-          }
-      });
-  }
-  else {
+    document.querySelectorAll(parent).forEach(function (par) {
       if (Array.isArray(child)) {
-          child.forEach(function (ch) {
-              parent.append(ch);
-          });
+        child.forEach(function (ch) {
+          par.append(ch);
+        });
       }
+    });
+  } else {
+    if (Array.isArray(child)) {
+      child.forEach(function (ch) {
+        parent.append(ch);
+      });
+    }
   }
 };
 // /*
@@ -244,10 +319,11 @@ const buildTo = function (child, parent) {
 here is the awesome uiedbook router
 */
 const routes = {};
-const route = function (path = "/", templateId, controller) {
+const route = function (path = "/", controller, templateId) {
   const link = document.createElement("a");
   link.href = window.location.href.replace(/#(.*)$/, "") + "#" + path;
-  routes[path] = { templateId: templateId, controller: controller };
+  routes[path] = { controller: controller, templateId: templateId };
+  // link.innerText = templateId;
   return link;
 };
 const router = function (e) {
@@ -255,7 +331,7 @@ const router = function (e) {
   const url = window.location.hash.slice(1) || "/";
   const route = routes[url];
   if (route) {
-    route.controller();
+    route.controller(url);
   }
   // path = path ? path : "";
   //   if (this.mode === "history") {
@@ -317,17 +393,27 @@ const u = (...uied) => {
     if (eU === 1 && typeof el !== "string") {
       e = el;
     } else {
-      if (eU === 2 && typeof ifAll_OrNum !== "number") {
+      if (
+        eU === 2 &&
+        typeof ifAll_OrNum !== "number" &&
+        typeof el !== "object"
+      ) {
         //all el is being grabbed from the dom
         all = true;
         e = document.querySelectorAll(el);
       } else {
         if (typeof ifAll_OrNum === "number") {
           e = document.querySelectorAll(el)[ifAll_OrNum];
+        } else {
+          if (typeof el === "object" && typeof ifAll_OrNum === "string") {
+            e = el;
+            all = true;
+          }
         }
       }
     }
   }
+
   if (!e) throw new Error('element "' + el + '" not found');
 
   // the funny parts or extra methods that can be used
@@ -337,12 +423,18 @@ const u = (...uied) => {
     // for styling
     style(obj) {
       for (const [k, v] of Object.entries(obj)) {
-        if (!all) {
-          e.style[k] = v;
+        if (typeof e.style[k] !== "undefined") {
+          if (!all) {
+            e.style[k] = v;
+          } else {
+            e.forEach((element) => {
+              element.style[k] = v;
+            });
+          }
         } else {
-          e.forEach(element => {
-            element.style[k] = v;
-          });
+          console.warn(
+            `uiedbook: ${k} is an invalid css property - possibly a typo`
+          );
         }
       }
     },
@@ -356,6 +448,12 @@ u("#container").style({
 })
 
 */
+    each(fuc) {
+      if (!Array.isArray(e)) {
+        return;
+      }
+      e.forEach((item, i) => fuc.call(item, i));
+    },
 
     config(obj) {
       // for manipulating objects
@@ -380,7 +478,9 @@ u(object).config({
     appendTo(type, attribute = {}, number = 1) {
       // for adding new elements more powerfully
       if (typeof attribute === "undefined" || typeof type === "undefined") {
-        throw new Error("type or attribute not given | not enough parameters to work with");
+        throw new Error(
+          "type or attribute not given | not enough parameters to work with"
+        );
       }
       const frag = new DocumentFragment();
       let returned = null;
@@ -393,7 +493,7 @@ u(object).config({
           }
           returned = frag.childNodes[0];
           frag.append(element);
-          al.push(element)
+          al.push(element);
         }
         e.append(frag);
       } else {
@@ -403,17 +503,17 @@ u(object).config({
             element[k] = v;
           }
           frag.append(element);
-          al.push(element)
+          al.push(element);
         }
 
-        e.forEach(el => {
+        e.forEach((el) => {
           el.append(frag);
         });
       }
       if (al.length === 1) {
-        returned = al[0]
+        returned = al[0];
       } else {
-        returned = al
+        returned = al;
       }
 
       return returned;
@@ -432,7 +532,7 @@ u("#container").appendTo("div"{
       if (!all) {
         return e.removeEventListener(type, callback, true);
       } else {
-        return e.forEach(element => {
+        return e.forEach((element) => {
           element.removeEventListener(type, callback, true);
         });
       }
@@ -442,7 +542,7 @@ u("#container").appendTo("div"{
       if (!all) {
         return e.addEventListener(type, callback, true);
       } else {
-        return e.forEach(element => {
+        return e.forEach((element) => {
           element.addEventListener(type, callback, true);
         });
       }
@@ -478,7 +578,7 @@ u("#container").on("click", ()=>{
           if (prop === null) {
             return e.getAttribute(prop);
           } else {
-            e.forEach(el => el.setAttribute(prop, attr));
+            e.forEach((el) => el.setAttribute(prop, attr));
           }
         }
       }
@@ -501,7 +601,7 @@ u("#container").attr({
       if (!all) {
         e.removeAttribute(attr);
       } else {
-        e.forEach(el => el.removeAttribute(attr));
+        e.forEach((el) => el.removeAttribute(attr));
       }
     },
     /*
@@ -510,12 +610,13 @@ u("#container").attr({
 u("#container").removeAttr("className")
 
 */
-    // for adding inner html contents to the dom elements
+    /** this method is not a safe pratice */
     html(code) {
+      // for adding inner html contents to the dom elements
       if (!all) {
         e.innerHTML = code;
       } else {
-        e.forEach(el => (el.innerHTML = code));
+        e.forEach((el) => (el.innerHTML = code));
       }
     },
     /*
@@ -529,7 +630,7 @@ u("#container").html("<div> hello am a div </div>")
       if (!all) {
         e.textContent = text;
       } else {
-        e.forEach(el => (el.textContent = text));
+        e.forEach((el) => (el.textContent = text));
       }
     },
     /*
@@ -544,7 +645,7 @@ u("#container").html("hello am text")
       if (!all) {
         e.classList.add(clas);
       } else {
-        e.forEach(el => el.classList.add(clas));
+        e.forEach((el) => el.classList.add(clas));
       }
     },
     /*
@@ -560,7 +661,7 @@ u("#container").addClass(".class")
       if (!all) {
         e.classList.remove(clas);
       } else {
-        e.forEach(el => el.classList.remove(clas));
+        e.forEach((el) => el.classList.remove(clas));
       }
     },
     /*
@@ -575,7 +676,7 @@ u("#container").removeClass(".class")
       if (!all) {
         e.style.display = "none";
       } else {
-        e.forEach(el => (el.style.display = "none"));
+        e.forEach((el) => (el.style.display = "none"));
       }
     },
     /*
@@ -594,9 +695,9 @@ u("#container").hide()
         }
       } else {
         if (e[0].style.display === "none") {
-          e.forEach(el => (el.style.display = "block"));
+          e.forEach((el) => (el.style.display = "block"));
         } else {
-          e.forEach(el => (el.style.display = "none"));
+          e.forEach((el) => (el.style.display = "none"));
         }
       }
     },
@@ -612,21 +713,37 @@ u("#container").toggleClass(".class")
       if (!all) {
         e.style.display = "block";
       } else {
-        e.forEach(el => (el.style.display = "block"));
+        e.forEach((el) => (el.style.display = "block"));
       }
     },
+
     scaleOut() {
       if (!all) {
         e.style.transform = "scale(1)";
+        e.style.transform = "translate(-50%, -50%)";
+        e.style.top = "50%";
+        e.style.left = "50%";
+        e.style.transformOrigin = "center";
       } else {
-        e.forEach(el => (el.style.transform = "scale(1)"));
+        e.forEach((el) => {
+          el.style.transform = "scale(1)";
+          el.style.transform = "translate(-50%, -50%)";
+          el.style.top = "50%";
+          el.style.left = "50%";
+          el.style.transformOrigin = "center";
+        });
       }
     },
+
     scaleIn() {
       if (!all) {
         e.style.transform = "scale(0)";
+        // e.style.transform = "translate(50%, 50%)";
       } else {
-        e.forEach(el => (el.style.transform = "scale(0)"));
+        e.forEach((el) => {
+          el.style.transform = "scale(0)";
+          // el.style.transform = "translate(50%, 50%)";
+        });
       }
     },
     /*
@@ -643,10 +760,24 @@ u("#container").show()
         e.style.height = h;
         e.style.backgroundColor = c;
       } else {
-        e.forEach(el => {
+        e.forEach((el) => {
           el.style.width = w;
           el.style.height = h;
           el.style.backgroundColor = c;
+        });
+      }
+    },
+
+    removeAll() {
+      if (!all) {
+        e.childNodes.forEach((child) => {
+          child.parentElement.remove(child);
+        });
+      } else {
+        e.forEach((el) => {
+          el.childNodes.forEach((child) => {
+            child.parentElement.remove(child);
+          });
         });
       }
     },
@@ -658,7 +789,9 @@ u("#container").box("100px","100%","#ff9800")
 */
     // for scrollingthe dom elements into view
     scrollTo(s = true) {
-      e.scrollIntoView(s);
+      if (!all) {
+        e.scrollIntoView(s);
+      }
     },
     /*
  *** HOW TO USE ***
@@ -668,7 +801,13 @@ u("#container").scrollTo()
 */
     // for adding elements to the dom elements
     add(nod) {
-      e.append(nod);
+      if (!all) {
+        e.append(nod);
+      } else {
+        e.forEach((el) => {
+          el.append(nod);
+        });
+      }
     },
     /*
  *** HOW TO USE ***
@@ -677,8 +816,20 @@ u("#container").add(span)
 
 */
     // for removing elements to the dom elements
-    remove(ind) {
-      e.removeChild(e.childNodes[ind]);
+    remove() {
+      e.childNodes.forEach((child) => {
+        child.parentElement.remove(child);
+      });
+    },
+
+    removeChildAtIndex(ind) {
+      if (!all) {
+        e.removeChild(e.childNodes[ind]);
+      } else {
+        e.forEach((el) => {
+          el.removeChild(e.childNodes[ind]);
+        });
+      }
     },
     /*
  *** HOW TO USE ***
@@ -692,15 +843,17 @@ u("#container").remove(0)
       return {
         toggle: () => {
           if (!document.fullscreenElement) {
-            e.requestFullscreen().catch(err => {
-              alert(`Error! failure attempting to enable full-screen mode: ${err.message} (${err.name})`);
+            e.requestFullscreen().catch((err) => {
+              alert(
+                `Error! failure attempting to enable full-screen mode: ${err.message} (${err.name})`
+              );
             });
           } else {
             document.exitFullscreen();
           }
         },
         set() {
-          e.requestFullscreen().catch(err => {
+          e.requestFullscreen().catch((err) => {
             alert(`Error! failure attempting to enable
  full-screen mode: ${err.message}
  (${err.name})`);
@@ -708,9 +861,9 @@ u("#container").remove(0)
         },
         exist() {
           document.exitFullscreen();
-        }
+        },
       };
-    }
+    },
 
     /*
  *** HOW TO USE ***
@@ -742,14 +895,12 @@ console.log(isEmptyObject(objB));
 
 */
 
-
-
 function intersect(target, opt, callback) {
   const { root, rootMargin, threshold } = opt,
     options = {
       root: root,
       rootMargin: rootMargin,
-      threshold: threshold
+      threshold: threshold,
     },
     observer = new IntersectionObserver(callback, options),
     child = document.querySelector(target);
@@ -771,7 +922,7 @@ root: null,
 
 */
 
-const error = msg => {
+const error = (msg) => {
   throw new Error(msg);
 };
 /*
@@ -808,13 +959,13 @@ const rad = (num, lowestValue = 0, highestValue = num) => {
   // for getting more purer random number
   function getRAndomNumber() {
     let randomNumber = Math.floor(Math.random() * Math.floor(num));
-   return randomNumber 
+    return randomNumber;
   }
   let randomNumber = getRAndomNumber();
   if (randomNumber <= lowestValue || randomNumber >= highestValue) {
-    randomNumber = getRAndomNumber()
- }
-  return randomNumber
+    randomNumber = getRAndomNumber();
+  }
+  return randomNumber;
 };
 /*
  *** HOW TO USE ***
@@ -907,16 +1058,16 @@ const check = function (id) {
   const ind = callStack.indexOf(id);
   if (ind > -1) {
     // callStack.filter(key => !(id === key));
-    callStack.splice(ind,1)
+    callStack.splice(ind, 1);
     return true;
   } else {
     return false;
   }
 };
 
-const log = message => {
+const log = (message) => {
   if (message) {
-    console.log(message);
+    console.log(...message);
   } else {
     if (callStack.length > 0) {
       console.log(callStack);
@@ -929,14 +1080,14 @@ const store = (name, value) => {
   /// it's self explanatory some how
   localStorage.setItem(name, JSON.stringify(value));
 };
-const retrieve = name => {
+const retrieve = (name) => {
   localStorage.getItem(name);
 };
 
-const remove = name => {
+const remove = (name) => {
   localStorage.removeItem(name);
 };
-const getKey = index => {
+const getKey = (index) => {
   window.localStorage.key(index);
 };
 const clear = () => {
@@ -1000,7 +1151,7 @@ onKeys(["arrowRight","control"],callback,container);
 */
 
 // const continuesKeys = (keys, callback, delay = 0, object = document, lock = true) => {
-  // under construction!!!!!!!
+// under construction!!!!!!!
 //   if (!keys || !callStack) {
 //     throw new Error("no keys or callbacks given");
 //   }
@@ -1050,14 +1201,10 @@ continuesKeys(["arrowRight","control"],callback,500,true,container);
 
 */
 
-
-
-
-
 var keyObject = function (keysArray, callBack) {
   return {
-      keysArray: keysArray,
-      callBack: callBack
+    keysArray: keysArray,
+    callBack: callBack,
   };
 };
 var keysStack = [];
@@ -1067,52 +1214,64 @@ var keepKeys = function (keys, callback) {
 };
 var checkKeys = function (keys, e, delay) {
   function partOf(a, b) {
-      var matches = 0;
-      for (var i = 0; i < a.length; i++) {
-          if (b.indexOf(a[i]) === -1) {
-              matches++;
-          }
+    var matches = 0;
+    for (var i = 0; i < a.length; i++) {
+      if (b.indexOf(a[i]) === -1) {
+        matches++;
       }
-      return matches === a.length;
+    }
+    return matches === a.length;
   }
   var _loop_3 = function (i) {
-      if (!partOf(keysStack[i].keysArray, keys)) {
-          debounce(function () { return keysStack[i].callBack(e); }, delay);
-      }
+    if (!partOf(keysStack[i].keysArray, keys)) {
+      debounce(function () {
+        return keysStack[i].callBack(e);
+      }, delay);
+    }
   };
   for (var i = 0; i < keysStack.length; i++) {
-      _loop_3(i);
+    _loop_3(i);
   }
   return keys;
 };
 
-
-
-
-
 /** for handling even more complicated key events, it's built with the grandmother algorimth or code */
 var onKeys = function (keys, callback, object, delay, lock) {
-  if (object === void 0) { object = document; }
-  if (delay === void 0) { delay = 0; }
-  if (lock === void 0) { lock = false; }
+  if (object === void 0) {
+    object = document;
+  }
+  if (delay === void 0) {
+    delay = 0;
+  }
+  if (lock === void 0) {
+    lock = false;
+  }
   // for handling even more complicated key events,
   if (!keys || !callback) {
-      throw new Error("no keys or callbacks given");
+    throw new Error("no keys or callbacks given");
   }
   var temporaryKeys = [];
   keepKeys(keys, callback);
-  object.addEventListener("keydown", function (e) {
+  object.addEventListener(
+    "keydown",
+    function (e) {
       if (lock) {
-          e.preventDefault();
+        e.preventDefault();
       }
       if (temporaryKeys.indexOf(e.key) !== 0) {
-          temporaryKeys.push(e.key);
+        temporaryKeys.push(e.key);
       }
-  }, false);
-  object.addEventListener("keyup", function (e) {
+    },
+    false
+  );
+  object.addEventListener(
+    "keyup",
+    function (e) {
       checkKeys(temporaryKeys, e, delay);
       temporaryKeys = [];
-  }, false);
+    },
+    false
+  );
 };
 /*
 *** HOW TO USE ***
@@ -1126,46 +1285,62 @@ let callback = ()=>{
 onKeys(["arrowRight","control"],callback,container);
 
 */
-/** under construction!!!!!!! */
+
+/** this for adding key events that continue to call as long as the key is still pressed not once for each key press */
 var continuesKeys = function (keys, callback, delay, object, lock) {
-  if (delay === void 0) { delay = 0; }
-  if (object === void 0) { object = document; }
-  if (lock === void 0) { lock = false; }
+  if (delay === void 0) {
+    delay = 0;
+  }
+  if (object === void 0) {
+    object = document;
+  }
+  if (lock === void 0) {
+    lock = false;
+  }
   // for handling even more complicated key events,
   if (!keys || !callback) {
-      throw new Error("no keys or callbacks given");
+    throw new Error("no keys or callbacks given");
   }
   keepKeys(keys, callback);
   var temporaryKeys = [];
-  object.addEventListener("keyup", (e)=>{
-for (let i = 0; i < temporaryKeys.length; i++) {
-  if (temporaryKeys[i] === e.key) {
-    temporaryKeys.splice(i,1);
-    --i;
-    checkKeys(temporaryKeys, e, delay);
-  }
-}
-  }, true)
- 
-  object.addEventListener("keydown", function (e) {
-      if (lock) {
-          e.preventDefault();
-      }
-      if (temporaryKeys.indexOf(e.key) < 0) {
-          temporaryKeys.push(e.key);
+  object.addEventListener(
+    "keyup",
+    (e) => {
+      for (let i = 0; i < temporaryKeys.length; i++) {
+        if (temporaryKeys[i] === e.key) {
+          temporaryKeys.splice(i, 1);
+          --i;
+          break;
+        }
       }
       checkKeys(temporaryKeys, e, delay);
-  }, true);
+    },
+    true
+  );
+
+  object.addEventListener(
+    "keydown",
+    function (e) {
+      if (lock) {
+        e.preventDefault();
+      }
+      if (temporaryKeys.indexOf(e.key) < 0) {
+        temporaryKeys.push(e.key);
+      }
+      checkKeys(temporaryKeys, e, delay);
+    },
+    true
+  );
 };
-
-
 
 function swipe(item) {
   let caller;
   let startX = 0,
-    startY = 0;
-  if (typeof item === "object") {
-      caller = item;
+    startY = 0,
+    displacement = 0,
+    event = null;
+  if (typeof item === "object" && !isEmptyObject(item)) {
+    caller = item;
   } else {
     throw new Error("no call given for the swipe handler");
   }
@@ -1176,6 +1351,7 @@ function swipe(item) {
   }
 
   function handleTouchEnd(e) {
+    event = e;
     const diffX = e.changedTouches[0].screenX - startX;
     const diffY = e.changedTouches[0].screenY - startY;
     const ratioX = Math.abs(diffX / diffY);
@@ -1198,7 +1374,7 @@ function swipe(item) {
           callback.left(caller.left);
         }
       }
-
+      displacement = diffX;
       // up and down
     } else {
       if (diffY >= 0) {
@@ -1210,6 +1386,7 @@ function swipe(item) {
           callback.up(caller.up);
         }
       }
+      displacement = diffY;
     }
   }
 
@@ -1218,23 +1395,23 @@ function swipe(item) {
 
   const callback = {
     touch(callback) {
-      return callback();
+      return callback(displacement);
     },
     right(callback) {
       return callback();
     },
 
     left(callback) {
-      return callback();
+      return callback(displacement);
     },
 
     down(callback) {
-      return callback();
+      return callback(displacement);
     },
 
     up(callback) {
-      return callback();
-    }
+      return callback(displacement);
+    },
   };
 }
 
@@ -1288,7 +1465,7 @@ related operations like motion
 detection key map and all that
 useful stuff in one single 
 bundle it's a game rendering engine library
-called the RE engine
+called the uiedbook engine
 with minimal functionality
 for 2D rendering */
 
@@ -1299,7 +1476,11 @@ for 2D rendering */
  2. a movable background image
  3. ......
 */
-const buildCanvas = function (id, w = window.innerWidth, h = window.innerHeight) {
+const buildCanvas = function (
+  id,
+  w = window.innerWidth,
+  h = window.innerHeight
+) {
   /*this is used for creating
 pixel stable game views across
 all screen width with no pixelation 
@@ -1311,7 +1492,7 @@ problem try and see the magic */
       "mozBackingStorePixelRatio",
       "msBackingStorePixelRatio",
       "oBackingStorePixelRatio",
-      "backingStorePixelRatio"
+      "backingStorePixelRatio",
     ],
     deviceRatio = window.devicePixelRatio,
     backingRatio = backingStores.reduce(function (prev, curr) {
@@ -1352,55 +1533,73 @@ parent to append directly */
   return cv;
 };
 
-/*this is the RE game time line algorimth*/
+const speaker = function (
+  text,
+  language = "en",
+  volume = 1,
+  rate = 1,
+  pitch = 1
+) {
+  // common languages (not supported by all browsers)
+  // en - english,  it - italian, fr - french,  de - german, es - spanish
+  // ja - japanese, ru - russian, zh - chinese, hi - hindi,  ko - korean
+
+  // build utterance and speak
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = language;
+  utterance.volume = volume;
+  utterance.rate = rate;
+  utterance.pitch = pitch;
+  speechSynthesis.speak(utterance);
+};
+
+const speakerStop = () => {
+  return speechSynthesis && speechSynthesis.cancel();
+};
+
+/** This is the uiedbook game function
+ * it's responsible for setup the game world and
+ */
+
 const game = (function () {
-  /*Re is an interface
- where game views (view) are
- sequenced on.*/
-  const games = [];
+  /* the start function starts the game
+  and prepares the dom, it called by the assemble 
+  function below 
+  */
 
-  // the build function is for creating the game div
-  // and allowing the dev to build upon it
-  function build(viewID,callback) {
-    const frame = document.createElement("div");
-    if (viewID) {
-      frame.setAttribute("id", viewID);
-    }
-    u(frame).style({
-      height: "100vh",
-      width: "100vw",
-      backgroundColor: "black"
-    });
-    mount(frame, callback)
-    return frame;
-  }
+  let canvas,
+    id,
+    gameId,
+    context,
+    /** the difference between these two is that one is used for calculating and the other is for the game rendering */
+    fps,
+    fpso = 0,
+    lastdt = 0,
+    pause = false,
+    deltaTime,
+    started = false,
+    useBg = false,
+    gameStart = true;
 
-  // the mount function notifies the flow function
-  // that the game should be started
-  // and the callback can be used to run a function
-  // perculiar to this effect.
-  function mount(template, callback) {
-    u("body").appendTo("div", { id: "gameframe" });
-    if (games.length === 1) {
-      return;
-    } else {
-      games.push(template);
-    }
-    if (!callback) return;
-    return callback.call(template);
-  }
-  // the flow function ochastrate the game play
-  function flow(fram) {
-    fram.append(games[0]);
-  }
-  // the start function starts the game
-  // and manathe dom
-  const start = (canvas, fps) => {
-    if (games.length < 1 || games.length > 1) {
-      throw new Error("uiedbook: game.mount() should be called and given a built game world");
-    }
-
-
+  const bg = [],
+    entitysArray = [],
+    /**A canvas for the game */
+    screen = buildCanvas("uiedbook_game_canvas"),
+    painter = screen.getContext("2d");
+  /**the div which the game canvas is mounted on */
+  const gameframe = build("div", { id: "gameframe" });
+  const intro = (canv) => {
+    let ctx = canv.getContext("2d"),
+      img = new Image();
+    img.onload = () => ctx.drawImage(img, 0, 0, canv.width, canv.height);
+    img.src = "game-logo.png";
+  };
+  /**This prepares the dom and call the _render function which calls the animate function which starts the game
+   * it is first called by the game.assemble(entities) function
+   */
+  const start = (fps = 0) => {
+    const canvas = buildCanvas("gamecanvas");
+    document.body.append(gameframe);
     u(document.body).style({
       margin: "0px",
       padding: "0px",
@@ -1410,7 +1609,7 @@ const game = (function () {
       overflow: "hidden",
     });
 
-    u("#gameframe").style({
+    u(gameframe).style({
       width: "100vw",
       height: "100vh",
       position: "fixed",
@@ -1427,118 +1626,51 @@ const game = (function () {
       alignItems: "center",
       margin: "0px",
       padding: "0px",
-      boxSizing: "border-box"
+      boxSizing: "border-box",
     });
-    const gameframe = get("#gameframe");
-    flow(gameframe);
-    renderer.render(canvas, fps);
+    // done styling let's have some coffee
+    gameframe.append(canvas);
+    intro(canvas);
+    setTimeout(() => {
+      _render(canvas, fps);
+      toggleRendering();
+    }, 2000);
+    // just started the game
   };
-  // this stops the game
+
+  const deleteAllEntities = function () {
+    if (entitysArray[0]) {
+      for (let i = 0; i < entitysArray.length; i++) {
+        entitysArray[i].delete = true;
+      }
+    }
+  };
+  /**this destroy the game world and pause game rendering */
   const end = () => {
-    const fram = get("#gameframe");
-    fram.innerHTML = "";
-    renderer.toggleRendering();
-    // fram.append(vsg())
+    deleteAllEntities();
+    toggleRendering();
+    gameframe.parentElement.remove(gameframe);
   };
 
-  const widget = function (name) {
-    this.wig = document.createElement("div");
-    this.wig.className = name;
-    this.wig.id = name;
-    document.body.append(this.wig);
-    return this.wig;
-  };
-
-  /*
-  async function contentLoader(type, id, url) {
-    if (type === "img") {
-      let img;
-      const loaded = await new Promise((res, rej) => {
-        const p = new Image();
-        try {
-        p.src = url;
-        p.id = id;
-        p.addEventListener("load", res.call(p), { once: true });
-        img =  p;
-        } catch (error) {
-          rej(error)
-        }
-      })
-      return img;
-    } else {
-      if (type === "aud") {
-        let aud;
-          const loaded = await new Promise((res, rej) => {
-        try {
-        const p = new Audio();
-        p.src = url;
-        p.id = id;
-          p.addEventListener("load", res.call(p), { once: true });
-          aud =  p;
-        } catch (error) {
-          rej(error)
-        }
-      })
-      return aud;
-      }
-    }
-  }
-
-  const imagesArray = [],
-    audioArray = [];
-  async function loadImage(img, id) {
-    if (Array.isArray(img) && !id) {
-      for (let i = 0; i < img.length; i++) {
-        if (!img[i][0] || !img[i][1]) {
-          throw new Error(`uiedbook: image url or id not specified correctly for the ${i} image`);
-        }
-        const p = await contentLoader("img", img[i][1], img[i][0]);
-        imagesArray.push(p);
-      }
-    } else {
-      if (img && id) {
-        const i = await contentLoader("img", img, id);
-        imagesArray.push(i);
-      } else {
-        throw new Error(`uiedbook: image url or id not specified`);
-      }
-    }
-  }
-  async function loadAudio(img, id) {
-    if (Array.isArray(img) && !id) {
-      for (let i = 0; i < img.length; i++) {
-         if (!img[i][0] || !img[i][1]) {
-          throw new Error(`uiedbook: audio url or id not specified correctly for the ${i} audio`);
-        }
-        const p = await contentLoader("aud", img[i][1], img[i][0]);
-        audioArray.push(p);
-      }
-    } else {
-      if (img && id) {
-        const i = await contentLoader("aud", img, id);
-        audioArray.push(i);
-      } else {
-        throw new Error(`uiedbook: audio url or id not specified`);
-      }
-    }
-  }
-
-  */
-
-
-///*
+  /**
+   *
+   * @param {*img or aud } type
+   * @param {*id for the image for retrieval } id
+   * @param {*url of the image} url
+   * @returns {*html image or audio element } node
+   */
   function contentLoader(type, id, url) {
     if (type === "img") {
       const p = new Image();
-        p.src = url;
-        p.id = id;
+      p.src = url;
+      p.id = id;
       return p;
     } else {
       if (type === "aud") {
         const p = new Audio();
         p.src = url;
         p.id = id;
-          return p;
+        return p;
       }
     }
   }
@@ -1549,7 +1681,9 @@ const game = (function () {
     if (Array.isArray(img) && !id) {
       for (let i = 0; i < img.length; i++) {
         if (!img[i][0] || !img[i][1]) {
-          throw new Error(`uiedbook: image url or id not specified correctly for the ${i} image`);
+          throw new Error(
+            `uiedbook: image url or id not specified correctly for the ${i} image`
+          );
         }
         const p = contentLoader("img", img[i][1], img[i][0]);
         imagesArray.push(p);
@@ -1562,12 +1696,15 @@ const game = (function () {
         throw new Error(`uiedbook: image url or id not specified`);
       }
     }
+    return imagesArray;
   }
   function loadAudio(img, id) {
     if (Array.isArray(img) && !id) {
       for (let i = 0; i < img.length; i++) {
-         if (!img[i][0] || !img[i][1]) {
-          throw new Error(`uiedbook: audio url or id not specified correctly for the ${i} audio`);
+        if (!img[i][0] || !img[i][1]) {
+          throw new Error(
+            `uiedbook: audio url or id not specified correctly for the ${i} audio`
+          );
         }
         const p = contentLoader("aud", img[i][1], img[i][0]);
         audioArray.push(p);
@@ -1580,170 +1717,428 @@ const game = (function () {
         throw new Error(`uiedbook: audio url or id not specified`);
       }
     }
+    return audioArray;
   }
- //*/
 
+  /**function to get sounds by id */
   function getAud(id) {
-    const p = audioArray.find(ent => ent.id === id);
+    const p = audioArray.find((ent) => ent.id === id);
+
     if (p) {
-      // console.log(p);
       return p;
     } else {
       throw new Error('uiedbook: audio of id "' + id + '" not found');
     }
   }
 
+  /**function to get images by id */
   function getImg(id) {
-    const p = imagesArray.find(ent => ent.id === id);
+    const p = imagesArray.find((ent) => ent.id === id);
     if (p) {
-      // console.log(p);
       return p;
     } else {
       throw new Error('uiedbook: image of id "' + id + '" not found');
     }
   }
 
+  /**
+   *
+   * @param {*image element} img
+   * @param {*number background speed} speed
+   * @param {*boolean to move backgroung up or down} up
+   * @param {*boolean to move background right or left} left
+   */
+  function bgPaint(img, speed, up, left) {
+    const bgImg = new bgPainter(img, speed, up, left);
+    bg.push(bgImg);
+    useBg = true;
+  }
+
+  /**This save the entities to the rendering list and starts the game*/
+  function _assemble(...players) {
+    if (!players) throw new Error("uiedbook: No players assembled");
+    players.forEach((player) => {
+      entitysArray.push(player);
+    });
+
+    if (gameStart) {
+      start();
+      gameStart = false;
+    }
+    return entitysArray;
+  }
+
+  /**This is called to detect collisions between entities and set their isHit flag to true, and let you do the rest */
+  function detectCollision(ent, entityArray, reduce = 0, freeMan) {
+    if (typeof entityArray === "string") {
+      entityArray = getAllEntities(entityArray);
+    }
+
+    for (let j = 0; j < entityArray.length; j++) {
+      if (entityArray[j].name === ent.name) {
+        continue;
+      } else {
+        if (
+          ent.left - reduce > entityArray[j].left + entityArray[j].width ||
+          ent.left + ent.width < entityArray[j].left - reduce ||
+          ent.top + reduce > entityArray[j].top + entityArray[j].height ||
+          ent.top + ent.height < entityArray[j].top - reduce
+        ) {
+          continue;
+        } else {
+          entityArray[j].isHit = true;
+          ent.isHit = true;
+          if (entityArray[j].name !== freeMan) {
+            entityArray.splice(j, 1);
+            --j;
+            continue;
+          }
+        }
+      }
+    }
+    return entityArray;
+  }
+
+  /** This get a copy of the canvas during the animation */
+  function copyCanvas() {
+    const c = buildCanvas("c");
+    const cx = c.getContext("2d");
+    cx.drawImage(screen, 0, 0, c.width, c.height);
+    return c;
+  }
+
+  /** this pauses the game rendering */
+  function toggleRendering() {
+    if (pause) {
+      window.requestAnimationFrame(animate);
+      pause = false;
+    } else {
+      window.cancelAnimationFrame(id);
+      pause = true;
+    }
+  }
+
+  /**this get you a copy of the current fps just like i promised */
+  function currentFPS() {
+    return fpso;
+  }
+
+  let seconds = 1000;
+  /**this calculate the fps and decides if the game should be rendered  */
+  function calcFPS(dt) {
+    deltaTime = Math.round(dt - lastdt);
+    lastdt = dt;
+    seconds = seconds - deltaTime;
+    fpso++;
+    if (seconds < 1) {
+      console.log("current fps is  " + fpso);
+      fpso = 0;
+      seconds = 1000;
+    }
+
+    if (deltaTime > fps) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  /**Here is the evil game loop */
+  function animate(dt) {
+    id = window.requestAnimationFrame(animate);
+    if (calcFPS(dt)) {
+      try {
+        /**here and drawing all the backgrounds first
+         * you can have move than one that move at
+         * different speeds or layered upon each other
+         * just to make this engine more powerful
+         */
+        if (useBg) {
+          bg.forEach((b) => {
+            b.paint(painter, screen.width, screen.height);
+            b.update();
+          });
+        }
+
+        /**Here we are painting and updating all entities */
+        entitysArray.forEach((ent, i) => {
+          if (ent.delete) {
+            entitysArray.splice(i, 1);
+            --i;
+          }
+
+          ent.exec(painter, dt);
+          if (ent.border) {
+            ent.observeBorder(screen.width, screen.height);
+          }
+
+          if (ent.border) {
+            ent.observeBorder(screen.width, screen.height);
+          }
+        });
+        /**drawing to the on-screen canvas */
+        context.drawImage(screen, 0, 0, canvas.width, canvas.height);
+        /**clearing the off-screen canvas */
+        painter.clearRect(0, 0, screen.width, screen.height);
+      } catch (error) {
+        /**this part can make you  cry*/
+        throw new Error(
+          `uiedbook: The canvas cannot be animated due to some errors | ${error}`
+        );
+      }
+    }
+  }
+
+  /**hey this is where th game setup and loop begins*/
+  function _render(canv, fpso) {
+    canvas = canv;
+    context = canv.getContext("2d");
+    // matching the off to on screen canvases
+    screen.height = canvas.height;
+    screen.width = canvas.width;
+    fps = fpso;
+    started = true;
+    id = window.requestAnimationFrame(animate);
+  }
+
+  /**with this you can get all the entities or the ones with a specific name or id */
+  function getAllEntities(name) {
+    if (name === "all" || !name) {
+      return entitysArray;
+    } else {
+      const these = [];
+      for (let i = 0; i < entitysArray.length; i++) {
+        if (entitysArray[i].name === name || entitysArray[i].id === name) {
+          these.push(entitysArray[i]);
+        }
+      }
+      return these;
+    }
+  }
+  const stop = () => {
+    window.cancelIdleCallback(gameId);
+  };
+  const run = (...fuc) => {
+    fuc.forEach((f) => f());
+    gameId = window.requestIdleCallback(run);
+  };
+  // here am giving you access, make proper use
   return {
-    build: build,
-    makeWidget: widget,
-    start: start,
+    assemble: _assemble,
     loadImage: loadImage,
     loadAudio: loadAudio,
     getImg: getImg,
     getAud: getAud,
-    end: end
+    backgroundImage: bgPaint,
+    detectCollision: detectCollision,
+    copyCanvas: copyCanvas,
+    currentFPS: currentFPS,
+    getAllEntities: getAllEntities,
+    getCanvas: function () {
+      return screen;
+    },
+    toggleRendering: toggleRendering,
+    end: end,
+    deleteAllEntities: deleteAllEntities,
+    run: run,
+    stop: stop,
+    pause: () => {
+      if (!pause) {
+        window.cancelAnimationFrame(id);
+        pause = true;
+      }
+    },
+    play: () => {
+      if (pause) {
+        window.requestAnimationFrame(animate);
+        pause = false;
+      }
+    },
   };
 })();
-// END OF THE main RE ENGINE////////////////////////
 
-/*
-other TODOs stuff will be built here
-*/
-const entity = function (name, painter, behaviors) {
-  /*an entity is any object or thing
- that can be added to the game world*/
-if (!painter || !behaviors) {
-  throw new Error("cannot create entity without a paiter and behavior objects");
-}
-  //this.id = name || "none" //name of the entity for identification can be used out side here******
-  this.name = name || "none";
-  this.painter = painter; // callback for paint the entity     can be used out side here******
-  this.width = 0; // width of entiity                              can be used out side here******
-  this.height = 0; // height of entity                             can be used out side here******
-  // this.spritWidth = 0;
-  // this.spritHeight = 0;
-  this.top = 0; // distance from the top of the canvas              can be used out side here******
-  this.left = 0; // distance from the left of the canvas            can be used out side here******
-  // this.velocityX = 0; // velocity on the x axis
-  // this.velocityY = 0; // velocity on the y axis
-  this.visible = true; // to check if the entity is displayed        can be used out side here******
-  this.behaviors = behaviors; // this is a callback to add additional properties to the entity at runtime
-  // this.frame = 0;
-  // this.timer = 0;
-  this.delete = false; //  to delete an entity                        can be used out side here******
-  this.border = true; //   to make the entity observer sides or not   can be used out side here******
-  this.isHit = false;
-};
-
-entity.prototype = {
-  // this algorimth is for calling the paint function
-  // to make it functional when seen at runtime
-  update(context, lastDeltalTime) {
-    if (typeof this.painter.update !== "undefined" && this.visible) {
-      this.painter.update(this, context, lastDeltalTime);
-    } else {
-      // throw new Error(`RE: entity with name of ${this.name} has no update function`);
+/**an entity is any thing which should be on the game world and each has a painter and or a behavior */
+class entity {
+  constructor(name, painter, behaviors) {
+    if (!painter) {
+      throw new Error("cannot create entity without a paiter object");
     }
-  },
-  paint(context, lastDeltalTime) {
-    if (typeof this.painter.paint !== "undefined" && this.visible) {
+    this.id = name || "none"; //name of the entity for identification can be used out side here******
+    this.name = name || "none";
+    this.painter = painter; // callback for paint the entity     can be used out side here******
+
+    this.behaviors = behaviors; // this is a callback to add additional properties to the entity at runtime
+    this.width = 0; // width of entiity                              can be used out side here******
+    this.height = 0; // height of entity                             can be used out side here******
+    this.top = 0; // distance from the top of the canvas              can be used out side here******
+    this.left = 0; // distance from the left of the canvas            can be used out side here******
+    this.visible = true; // to check if the entity is displayed        can be used out side here******
+    this.behaviors = behaviors; // this is a callback to add additional properties to the entity at runtime
+    this.delete = false; //  to delete an entity                        can be used out side here******
+    this.border = true; //   to make the entity observer sides or not   can be used out side here******
+    this.isHit = false;
+    this.credentials = false;
+  }
+
+  config(top, left, bottom, right) {
+    if (!top || !left || !bottom || !right) {
+      throw new Error(
+        `uiedbook: entity.config(top, left, bottom, right) on ${this.name} is invalid`
+      );
+    }
+    this.left = left;
+    this.top = top;
+    this.height = bottom;
+    this.width = right;
+  }
+
+  observeEntity = function (ent) {
+    if (
+      this.left > ent.left + ent.width ||
+      this.left + this.width < ent.left ||
+      this.top > ent.top + ent.height ||
+      this.top + this.height < ent.top
+    ) {
+      return false;
+    } else {
+      return true;
+    }
+  };
+  exec(context, lastDeltalTime) {
+    if (this.painter.update && this.visible) {
+      this.painter.update(this, context, lastDeltalTime);
+    }
+
+    if (this.painter.paint && this.visible) {
       this.painter.paint(this, context, lastDeltalTime);
     } else {
-      throw new Error(`RE: entity with name of ${this.name} has no paint function`);
+      throw new Error(
+        `uiedbook: entity with name of ${this.name} has no paint function`
+      );
     }
-  },
+
+    if (this.behaviors) {
+      this.behaviors(this, context, lastDeltalTime);
+    }
+
+    if (Array.isArray(this.callBacks)) {
+      this.callBacks.forEach((fuc) => fuc.call(this, context, lastDeltalTime));
+    }
+  }
+
   observeBorder(w, h) {
     if (this.top <= 0) {
-      this.top *= 0;
+      this.top *= 0.8;
     } else {
       if (h && this.top + this.height >= h) {
         this.top = h - this.height;
       }
     }
     if (this.left <= 0) {
-      this.left *= 0;
+      this.left *= 0.8;
     } else {
       if (w && this.left + this.width >= w) {
         this.left = w - this.width;
       }
     }
-  },
-  run(context, lastDeltalTime) {
-    // here the entity don't have to be visble
-    if (typeof this.behaviors !== "undefined") {
-      this.behaviors(this, context, lastDeltalTime);
-    }
   }
-};
 
-const imgPainter = function (img, delay = 1) {
-  this.image = img;
-  this.delay = delay;
-  this.range = 0;
-  this.rotate = false;
-};
-imgPainter.prototype = {
-  // paint only no update
-  paint(entity, context) {
+  addCallBacks(...functions) {
+    this.callBacks = [...functions];
+  }
+  clone() {
+    return this;
+  }
+}
+
+class imgPainter {
+  constructor(img, delay = 1) {
+    this.image = img;
+    this.delay = delay;
+    this.range = 0;
+    this.rotate = false;
+    this.observeChange = false;
+  }
+
+  update(entity) {
     this.range++;
     if (this.range % this.delay === 0) {
-      context.drawImage(this.image, entity.left, entity.top, entity.width, entity.height);
+      if (
+        lit(
+          this.observeChange,
+          422
+        )({
+          left: entity.left,
+          top: entity.top,
+          width: entity.width,
+          height: entity.height,
+        })
+      )
+        return;
+      this.observeChange = {
+        left: entity.left,
+        top: entity.top,
+        width: entity.width,
+        height: entity.height,
+      };
     }
+
     if (this.range > 100) {
       this.range = 1;
     }
   }
-};
 
-// this is a powerful sprite algorith for
+  paint(entity, context) {
+    context.drawImage(
+      this.image,
+      entity.left,
+      entity.top,
+      entity.width,
+      entity.height
+    );
+  }
+}
+
+// this is a powerful sprite algorithm for
 // rendering the exact sprite from a
 // spritesheet in successful orders
-const spriteSheetPainter = function (img, horizontal = 1, vertical = 1, delay = 1) {
-  this.image = img;
-  this.framesWidth = Math.round(this.image.width / horizontal);
-  this.framesHeight = Math.round(this.image.height / vertical);
-  this.horizontalPictures = horizontal;
-  this.verticalPictures = vertical;
-  this.frameHeightCount = 0;
-  this.frameWidthCount = 0;
-  this.range = 0;
-  this.delay = delay;
-  this.isLastImage = false;
-  this.animateAllFrames = (horizontal === 1) && (vertical === 1)? false: true;
-  this.animate = true;
-  this.rotate = false;
-  this.changeSheet = function (img, horizontal = 0, vertical = 0, delay = 1) {
+class spriteSheetPainter {
+  constructor(img, horizontal = 1, vertical = 1, delay = 1) {
+    this.image = img;
+    this.framesWidth = Math.round(this.image.width / horizontal);
+    this.framesHeight = Math.round(this.image.height / vertical);
+    this.horizontalPictures = horizontal;
+    this.verticalPictures = vertical;
+    this.frameHeightCount = 0;
+    this.frameWidthCount = 0;
+    this.range = 0;
+    this.delay = delay;
+    this.isLastImage = false;
+    this.animateAllFrames = horizontal === 1 && vertical === 1 ? false : true;
+    this.animate = true;
+    this.rotate = false;
+    this.bugCorrecter = 3;
+  }
+
+  changeSheet(img, horizontal = 0, vertical = 0, delay = 1) {
     this.image = img;
     this.framesWidth = Math.round(this.image.width / horizontal);
     this.framesHeight = Math.round(this.image.height / vertical);
     this.horizontalPictures = horizontal;
     this.verticalPictures = vertical;
     this.delay = delay;
-  this.animateAllFrames = (horizontal === 1) && (vertical === 1)? false: true;    
-  };
+    this.animateAllFrames = horizontal === 1 && vertical === 1 ? false : true;
+  }
 
-    this.animateFrameOf = function (frameY = 0) {
+  animateFrameOf(frameY = 0) {
     this.frameY = frameY;
   }
 
-
-};
-
-spriteSheetPainter.prototype = {
   update() {
     this.range++;
     if (this.range % this.delay === 0 && this.animate) {
       if (this.animateAllFrames) {
+        // animating all frames from the fisrt image to last in an infinite loop
         if (this.frameHeightCount < this.verticalPictures - 1) {
           if (this.frameWidthCount <= this.horizontalPictures - 2) {
             this.frameWidthCount++;
@@ -1755,33 +2150,38 @@ spriteSheetPainter.prototype = {
           this.isLastImage = true;
           this.frameHeightCount = 0;
         }
-        if (this.frameHeightCount === this.verticalPictures - 1) {
-          this.isLastImage = false;
-        }
       }
 
-    if (this.frameY) {
-    this.frameHeightCount = this.frameY;
-   if (this.frameWidthCount <= this.horizontalPictures - 2) {
-      this.frameWidthCount++;
-    } else {
-      this.frameWidthCount = 0;
+      if (this.frameY) {
+        this.frameHeightCount = this.frameY;
+        if (this.frameWidthCount < this.horizontalPictures - 1) {
+          this.frameWidthCount++;
+        } else {
+          this.frameWidthCount = 0;
+        }
+      }
     }
-  }
 
-
-      
-    }
     if (this.range > 100) {
       this.range = 1;
     }
-  },
+
+    if (this.bugCorrecter > 1) {
+      this.bugCorrecter--;
+      this.changeSheet(
+        this.image,
+        this.horizontalPictures,
+        this.verticalPictures
+      );
+    }
+  }
+
   paint(entity, context) {
     context.save();
     if (this.rotate) {
       context.translate(entity.left, entity.top);
-      context.rotate(this.rotate * Math.PI / 180);
-      context.translate(-entity.left, -entity.top)
+      context.rotate((this.rotate * Math.PI) / 180);
+      context.translate(-entity.left, -entity.top);
     }
     context.drawImage(
       this.image,
@@ -1796,40 +2196,21 @@ spriteSheetPainter.prototype = {
     );
     context.restore();
   }
-};
-
-const speaker = function (text, language = "en", volume = 1, rate = 1, pitch = 1) {
-  // common languages (not supported by all browsers)
-  // en - english,  it - italian, fr - french,  de - german, es - spanish
-  // ja - japanese, ru - russian, zh - chinese, hi - hindi,  ko - korean
-
-  // build utterance and speak
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = language;
-  utterance.volume = volume;
-  utterance.rate = rate;
-  utterance.pitch = pitch;
-  speechSynthesis.speak(utterance);
-};
-
-
-const speakerStop = () => {
-  return (speechSynthesis && speechSynthesis.cancel());
-};
+}
 
 // play mp3 or wav audio from a local file or url
-const audio = function (audio, volumeScale = 1,  loop = 0) {
-  this.audio = audio;
-  this.audio.loop = loop;
-  this.audio.volume = volumeScale;
-};
-audio.prototype = {
+class audio {
+  constructor(audio, volumeScale = 1, loop = 0) {
+    this.audio = audio;
+    this.audio.loop = loop;
+    this.audio.volume = volumeScale;
+  }
   play() {
     this.audio.play();
-  },
+  }
   pause() {
     this.audio.pause();
-  },
+  }
   toggle() {
     if (this.audio.pause) {
       this.audio.play();
@@ -1837,245 +2218,69 @@ audio.prototype = {
       this.audio.pause();
     }
   }
-};
+}
 
-const bgPainter = function (img, speed = 10, up, left) {
-  this.image = img;
-  this.range = 0;
-  this.speed = speed;
-  this.top = 0;
-  this.left = 0;
-  this.width = this.image.width;
-  this.height = this.image.height;
-  this.GoesUp = up;
-  this.GoesLeft = left;
-};
-bgPainter.prototype = {
+class bgPainter {
+  constructor(img, speed = 10, up, left, t, l, delay = 0) {
+    this.image = img;
+    this.speed = speed;
+    this.range = 0;
+    this.width = this.image.width;
+    this.height = this.image.height;
+    this.GoesUp = up;
+    this.GoesLeft = left;
+    this.top = t || 0;
+    this.left = l || 0;
+    this.delay = delay;
+    this.shouldPaint = false;
+  }
+
   update() {
-    if (this.GoesLeft) {
-      if (this.left <= -this.width) {
-        this.left = 0;
-      }
-      this.left = this.left - this.speed;
-    }
+    this.range++;
+    if (this.delay % this.range === 0) {
+      this.shouldPaint = true;
 
-    if (this.GoesUp) {
-      if (this.top >= this.height) {
-        this.top = 0;
+      if (this.GoesLeft) {
+        if (this.left <= -this.width) {
+          this.left = 0;
+        }
+        this.left -= this.speed;
       }
-      this.top += this.speed;
-    }
-  },
-  paint(canvas) {
-    const context = canvas.getContext("2d");
-    context.drawImage(this.image, this.left, this.top, canvas.width, this.height);
-    if (this.GoesLeft) {
-      context.drawImage(this.image, this.left + this.width, this.top, canvas.width, canvas.height);
-    } else {
-      context.drawImage(this.image, this.left, this.top - this.height, canvas.width, this.height);
+
+      if (this.GoesUp) {
+        if (this.top >= this.height) {
+          this.top = 0;
+        }
+        this.top += this.speed;
+      }
     }
   }
-};
 
-const physics = (function () {
-  function detectCollision(ent, entityArray, reduce = 0, skipMe, freeMan) {
-    for (let j = 0; j < entityArray.length; j++) {
-      if (skipMe && (entityArray[j].name === ent.name)) {
-        continue;
+  paint(context, w, h) {
+    if (this.shouldPaint === true) {
+      if (this.GoesLeft) {
+        context.drawImage(this.image, this.left, this.top, w, h);
+        context.drawImage(
+          this.image,
+          this.left + this.width,
+          this.top,
+          this.width,
+          h
+        );
       } else {
-        if (
-          (ent.left - reduce) > (entityArray[j].left + entityArray[j].width) ||
-          (ent.left + ent.width) < (entityArray[j].left - reduce) ||
-          ent.top + reduce > (entityArray[j].top + entityArray[j].height) ||
-          (ent.top + ent.height) < (entityArray[j].top - reduce)
-        ) {
-          continue;
-        } else {
-          entityArray[j].isHit = true;
-          ent.isHit = true;
-          if (entityArray[j].name !== freeMan) {
-            entityArray.splice(j,1);
-            --j;
-          }
-          // console.log(entityArray[j].name,j);
-        }
+        context.drawImage(this.image, this.left, this.top, w, h);
+        context.drawImage(
+          this.image,
+          this.left,
+          this.top - this.height,
+          w,
+          this.height
+        );
       }
-    }
-    return entityArray;
-  }
-
-  return {
-    detectCollision: detectCollision
-  };
-})();
-
-const renderer = (function () {
-  //game rendering algorithm
-  let canvas,
-    id, // for pausing or playing the game
-    context,
-    fps,
-        // variables for the timing
-    fpso = 0,
-    lastdt = 0,
-    pause = false,
-    deltaTime,
-    started = false,
-    useBg = false;
-  const bg = [],
-    entitysArray = [], // entity storage array
-    screen = buildCanvas("uiedbook_game_canvas"),
-      painter = screen.getContext("2d"), pool = [];
-    
-  function keepEntity(ent) {
-      if (!ent) return;
-    pool.push(ent);
-  }
-
-    function getFreeEntity(id) {
-      let freeNigga;
-      if (pool.length !== 0) {
-        for (let i = 0; i < pool.length; i++){
-          if (pool[i].name === id) {
-            freeNigga = pool[i];
-            pool.splice(i, 1);
-            i--;
-            break;
-          }
-        }
-      }
-      return freeNigga;
-    }
-  
-  function bgPaint(img, speed, up, left) {
-    const bgImg = new bgPainter(img, speed, up, left);
-    bg.push(bgImg);
-    useBg = true;
-    return bgImg;
-  }
-
-
-  function _assemble(...players) {
-    if (!players) throw new Error("RE: No players assembled");
-    players.forEach(player => {
-      entitysArray.push(player);
-    });
-    return entitysArray;
-  }
-    function getAll() {
-    return entitysArray;
-  }
-  function copyCanvasTo(c, opacity, border) {
-    const cx = c.getContext("2d");
-    cx.drawImage(screen, 0, 0, c.width, c.height);
-    c.style.opacity = opacity;
-    c.style.borderRadius = border;
-    return c;
-  }
-
-  function toggleRendering() {
-    if (!started) {
-      throw new Error("renderer.render() has not been called")
-    }
-    if (pause) {
-      window.requestAnimationFrame(animate);
-      pause = false;
-    } else {
-      window.cancelAnimationFrame(id);
-      pause = true;
+      this.shouldPaint = false;
     }
   }
-
-  function currentFPS() {
-   console.log("current fps is  " + fpso);
-    return fpso;
-  }
-  
-    let seconds = 1000;
-  function calcFPS(dt) {
-  deltaTime = Math.round(dt - lastdt);
-    lastdt = dt;
-      seconds = seconds - deltaTime;
-      fpso++;
-    if (seconds < 1) {
-      console.log(fpso);
-      fpso = 0;
-      seconds = 1000;
-    }
-
-    if (deltaTime > fps) {      
-      return true;
-    } else {
-      return false;
-  }
-  }
-
-
-  function  animate(dt) {
-    id = window.requestAnimationFrame(animate);
-    if (calcFPS(dt)) {
-      try {
-        
-        // if (useBg){ 
-          //  bg.forEach(b => {
-          //   b.paint(screen);
-          //   b.update();
-          // });
-          // painter.drawImage(game.getImg("space7"), 0, 0, screen.width, screen.height)
-        // }
-        // screen.width = screen.height = 0;
-        // screen.width = canvas.width
-        //  screen.height = canvas.height;
-        entitysArray.forEach((ent, i) => {
-          if (ent.delete) {
-            keepEntity(ent);
-            entitysArray.splice(i, 1);
-            --i;
-          }
-          if (ent.border) {
-             ent.observeBorder(screen.width, screen.height);
-          }
-        ent.update(painter);
-        ent.run(painter);
-        ent.paint(painter);
-        });
-        
-        // drawing the on-screen canvas
-        context.clearRect(0, 0, screen.width, screen.height)
-        context.drawImage(screen, 0, 0, canvas.width, canvas.height);
-        painter.clearRect(0, 0, screen.width, screen.height)
-      } catch (error) {
-        throw new Error(`the canvas cannot be animated due to some errors | ${error}`);
-      }
-    }
-  }
-
-
-  function _render(canv, fpso = 0) {
-    if (!canv) {
-      throw new Error("game needs to be rendered EXP: renderer.render(canvas)");
-    }
-    canvas = canv;
-    context = canv.getContext("2d");
-    screen.height = canvas.height;
-    screen.width = canvas.width;
-    fps = fpso;
-    started = true;
-      id =  window.requestAnimationFrame(animate);
-    }
-
-  return {
-    render: _render,
-    assemble: _assemble,
-    toggleRendering: toggleRendering,
-    backgroundImage: bgPaint,
-    copyCanvasTo: copyCanvasTo,
-    keepEntity: keepEntity,
-    getFreeEntity: getFreeEntity,
-    currentFPS: currentFPS,
-    getAll: getAll,
-  };
-})();
+}
 
 const uiedbook = {
   css,
@@ -2107,19 +2312,19 @@ const uiedbook = {
   swipe,
   buildCanvas,
   appendCanvas,
+  route,
+  t,
+  lit,
+  speaker,
+  speakerStop,
   game,
   entity,
   imgPainter,
   spriteSheetPainter,
   audio,
   bgPainter,
-  renderer,
-  speaker,
-  speakerStop,
-  physics,
-  route
 };
-// 38 apis contexts
+// 41 apis contexts
 
 if (typeof module !== "undefined") {
   module["exports"] = uiedbook;

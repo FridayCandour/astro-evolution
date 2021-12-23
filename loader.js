@@ -1,5 +1,6 @@
+let start = false;
 // here am loading all the needed images before hand
-game.loadImage([
+const img = game.loadImage([
     // bullets
     ["images/bullet1.png","bullet1"],
     ["images/bullet2.png","bullet2"],
@@ -39,7 +40,7 @@ game.loadImage([
 
 
     // here am loading all  the audio 
-    game.loadAudio([
+    const aud = game.loadAudio([
         ["sounds/start.wav", "start"],
         ["sounds/lase.mp3","lase"],
         ["sounds/hum.wav","hum"],
@@ -55,3 +56,7 @@ game.loadImage([
         ["sounds/wav.wav","wav"],
         ["sounds/spacer.wav","spacer"]
     ])
+
+    if (img && aud ) {
+        start = true;
+    }

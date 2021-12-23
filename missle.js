@@ -4,7 +4,7 @@ function makemissles(speed = 60, latency = 0, dir) {
   
         const misslePainter = new spriteSheetPainter(game.getImg("bullet3"),1,1,1);
         const missleBehaviour = function (missle) {
-          eArray  = physics.detectCollision(missle,[...eArray], latency, false, "jet");
+          eArray  = game.detectCollision(missle,[...eArray], latency, false, "jet");
           if (dir === "right") {
             misslePainter.rotate = 35;
             missle.top = missle.top - speed;
@@ -14,7 +14,7 @@ function makemissles(speed = 60, latency = 0, dir) {
             missle.top = missle.top - speed;
               missle.left = missle.left - speed;
           }
-          if (missle.top < 0 || missle.top > space_canvas.height) {
+          if (missle.top < 0 || missle.top > 1000) {
           missle.delete = true;
         }
         if (missle.isHit === true) {
@@ -27,6 +27,6 @@ function makemissles(speed = 60, latency = 0, dir) {
         }
           const missle = new entity("missle", misslePainter, missleBehaviour);
         u(missle).config({ top: bp, left: go, width: 14, height: 52, border: false});
-        renderer.assemble(missle);
+        game.assemble(missle);
         return missle;
 }
